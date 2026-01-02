@@ -1,0 +1,99 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/vehicle_model.dart';
+import '../repositories/vehicle_repository.dart';
+
+// 1. TẠO CLASS MỚI ĐỂ CHỨA DỮ LIỆU HÃNG XE (Gồm Tên + Danh sách loại hỗ trợ)
+class BrandData {
+  final String name;
+  final List<String> types; // Ví dụ: ["Xe máy", "Ô tô"]
+
+  BrandData({required this.name, required this.types});
+}
+
+class VehicleProvider extends ChangeNotifier {
+  final VehicleRepository _repo = VehicleRepository();
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  // 2. CÁC BIẾN DỮ LIỆU
+  List<String> _categories = [];
+  
+  // SỬA: Thay vì List<String>, ta dùng List<BrandData> để lưu chi tiết hơn
+  List<BrandData> _allBrands = []; 
+  
+  List<String> _fuelTypes = [];
+  List<String> _locations = [];
+
+  // Getter
+  List<String> get categories => _categories;
+  List<String> get fuelTypes => _fuelTypes;
+  List<String> get locations => _locations;
+
+  bool _isLoading = false;
+  bool get isLoading => _isLoading;
+
+  // 3. HÀM MỚI: LỌC BRAND THEO CATEGORY
+  // Hàm này sẽ được gọi từ UI (AddVehicleScreen)
+  List<String> getBrandsByCategory(String? category) {
+    if (category == null) return []; // Chưa chọn loại xe thì trả về rỗng
+
+    // Lọc trong danh sách _allBrands, tìm những ông nào có chứa category này
+    return _allBrands
+        .where((brand) => brand.types.contains(category))
+        .map((brand) => brand.name) // Chỉ lấy ra tên để hiện lên Dropdown
+        .toList();
+  }
+
+  // 4. HÀM TẢI CẤU HÌNH TỪ FIREBASE (Đã cập nhật logic lấy brands)
+  Future<void> fetchAppConfig() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final results = await Future.wait([
+        _db.collection('categories').get(),
+        _db.collection('brands').get(),
+        _db.collection('fuel_types').get(),
+        _db.collection('locations').get(),
+      ]);
+
+      // Lấy Categories
+      _categories = results[0].docs.map((d) => d['name'] as String).toList();
+
+      // SỬA: Lấy Brands (kèm theo field 'types')
+      _allBrands = results[1].docs.map((d) {
+        return BrandData(
+          name: d['name'] as String,
+          // Lấy mảng 'types' từ Firestore, nếu null thì trả về mảng rỗng
+          types: List<String>.from(d['types'] ?? []), 
+        );
+      }).toList();
+
+      // Lấy Fuel & Locations
+      _fuelTypes = results[2].docs.map((d) => d['name'] as String).toList();
+      _locations = results[3].docs.map((d) => d['name'] as String).toList();
+      
+    } catch (e) {
+      print("Lỗi tải cấu hình: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // 5. Hàm đăng xe (Giữ nguyên)
+  Future<bool> uploadVehicle(VehicleModel vehicle) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _repo.addVehicle(vehicle);
+      return true;
+    } catch (e) {
+      print(e);
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+}

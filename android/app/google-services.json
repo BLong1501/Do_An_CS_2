@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1046419452826",
+    "project_id": "dacs-ban-xe",
+    "storage_bucket": "dacs-ban-xe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1046419452826:android:c7340b1a1d7b26948ec023",
+        "android_client_info": {
+          "package_name": "com.example.my_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGtd09FNoHoKJMB-QG76yoiDBw0iLN0hE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

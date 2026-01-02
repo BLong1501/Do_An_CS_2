@@ -87,4 +87,13 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+  // Hàm gửi email reset mật khẩu (Logic thuần túy)
+  Future<void> sendPasswordReset(String email) async {
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      // Ném lỗi ra để bên UI bắt được và hiện thông báo
+      throw e;
+    }
+  }
 }

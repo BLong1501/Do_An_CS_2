@@ -1,6 +1,6 @@
 // import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
-import 'package:my_app/views/admin/admin_vehicle_screen.dart';
+import 'package:my_app/views/admin/admin_screen.dart';
 import 'package:my_app/views/home/home_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Nhớ import cái này
@@ -130,16 +130,31 @@ class _LoginScreenState extends State<LoginScreen> {
         title: const Text(
           "XE TỐT MARKET",
           style: TextStyle(
-            fontSize: 24, // Giảm size chút cho đỡ bị tràn trên máy nhỏ
+            fontSize: 24,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.blue[300],
-        foregroundColor: Colors.white,
+        elevation: 6, // độ cao để tạo shadow
+        shadowColor: Colors.black.withOpacity(0.7), // màu bóng
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: const <Color>[
+                Color.fromARGB(255, 195, 204, 211), // xám xanh nhạt
+                Color(0xFF1E88E5), // xanh dương đậm
+              ],
+              // transform xoay gradient 45 độ
+              transform: const GradientRotation(0.25 * 3.1416), // ~45°
+            ),
+          ),
+        ),
       ),
-      body: SingleChildScrollView( // Thêm cái này để không bị lỗi tràn màn hình khi phím hiện lên
+      body: SingleChildScrollView(
+        // Thêm cái này để không bị lỗi tràn màn hình khi phím hiện lên
         child: Padding(
           padding: const EdgeInsets.all(30.0), // Giảm padding chút cho thoáng
           child: Column(
@@ -148,10 +163,14 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 20),
               Text(
                 "Đăng Nhập", // Sửa thành tiếng Việt cho đồng bộ
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.blue[800]),
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.blue[800],
+                ),
               ),
               const SizedBox(height: 30),
-              
+
               // Field cho email
               TextFormField(
                 controller: _emailController,
@@ -161,12 +180,21 @@ class _LoginScreenState extends State<LoginScreen> {
                   labelStyle: TextStyle(color: Colors.blue[300], fontSize: 16),
                   prefixIcon: Icon(Icons.email, color: Colors.blue[300]),
                   border: const UnderlineInputBorder(),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.blue.shade300, width: 2.0)),
-                  enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color.fromARGB(255, 149, 204, 243))),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Colors.blue.shade300,
+                      width: 2.0,
+                    ),
+                  ),
+                  enabledBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Color.fromARGB(255, 149, 204, 243),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 15),
-              
+
               // Field mật khẩu
               TextFormField(
                 controller: _passwordController,
@@ -176,11 +204,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   labelStyle: TextStyle(color: Colors.blue[300], fontSize: 16),
                   prefixIcon: Icon(Icons.lock, color: Colors.blue[300]),
                   border: const UnderlineInputBorder(),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.blue.shade300, width: 2.0)),
-                  enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color.fromARGB(255, 149, 204, 243))),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Colors.blue.shade300,
+                      width: 2.0,
+                    ),
+                  ),
+                  enabledBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Color.fromARGB(255, 149, 204, 243),
+                    ),
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                       color: Colors.grey,
                     ),
                     onPressed: () {
@@ -212,8 +251,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   TextButton(
-                    onPressed: () => AppDialogs.showForgotPasswordDialog(context), // Gọi hàm hiển thị dialog
-                    child: Text("Quên mật khẩu?", style: TextStyle(color: Colors.blue[400])),
+                    onPressed: () => AppDialogs.showForgotPasswordDialog(
+                      context,
+                    ), // Gọi hàm hiển thị dialog
+                    child: Text(
+                      "Quên mật khẩu?",
+                      style: TextStyle(color: Colors.blue[400]),
+                    ),
                   ),
                 ],
               ),
@@ -226,7 +270,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size.fromHeight(50),
                         backgroundColor: const Color.fromARGB(255, 39, 88, 194),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       onPressed: () async {
                         FocusScope.of(context).unfocus(); // Tắt bàn phím
@@ -236,9 +282,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             _emailController.text.trim(),
                             _passwordController.text.trim(),
                           );
-                          
+
                           // LƯU THÔNG TIN NẾU CHỌN GHI NHỚ
-                          _handleRememberMe(); 
+                          _handleRememberMe();
 
                           if (context.mounted) {
                             final user = authProvider.user;
@@ -246,13 +292,17 @@ class _LoginScreenState extends State<LoginScreen> {
                               if (user.role.name == 'admin') {
                                 Navigator.pushAndRemoveUntil(
                                   context,
-                                  MaterialPageRoute(builder: (_) => const AdminScreen()), // Sửa AdminScreen của bạn ở đây
+                                  MaterialPageRoute(
+                                    builder: (_) => const AdminScreen(),
+                                  ), // Sửa AdminScreen của bạn ở đây
                                   (route) => false,
                                 );
                               } else {
                                 Navigator.pushAndRemoveUntil(
                                   context,
-                                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                                  MaterialPageRoute(
+                                    builder: (_) => const HomeScreen(),
+                                  ),
                                   (route) => false,
                                 );
                               }
@@ -271,12 +321,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       child: const Text(
                         "ĐĂNG NHẬP",
-                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-              
+
               const SizedBox(height: 20),
-              
+
               // Chuyển sang đăng ký
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -286,16 +340,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const RegisterScreen(),
+                        ),
                       );
                     },
                     child: Text(
                       "Đăng ký ngay",
-                      style: TextStyle(color: const Color.fromARGB(255, 23, 108, 182), fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: const Color.fromARGB(255, 23, 108, 182),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  )
+                  ),
                 ],
-              )
+              ),
             ],
           ),
         ),

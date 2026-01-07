@@ -6,6 +6,7 @@ class AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  
   // HÀM ĐANG THIẾU CỦA BẠN ĐÂY:
   Future<UserModel?> getCurrentUserData() async {
     try {
@@ -50,4 +51,5 @@ class AuthRepository {
     await _db.collection('users').doc(credential.user!.uid).set(newUser.toMap());
   
 }
+
 }

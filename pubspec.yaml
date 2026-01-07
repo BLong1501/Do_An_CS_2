@@ -47,6 +47,8 @@ dependencies:
 
   shared_preferences: ^2.2.2
 
+      # Để chọn ảnh từ máy
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

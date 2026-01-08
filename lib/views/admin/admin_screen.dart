@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // 1. Import Firebase Auth
+import 'package:my_app/services/data_seeder.dart';
 import '../auth/login_screen.dart'; // 2. Import màn hình Login
 import 'tabs/vehicle_approval_tab.dart';
 import 'tabs/seller_approval_tab.dart';
@@ -20,6 +21,41 @@ class AdminScreen extends StatelessWidget {
           
           // --- 3. THÊM NÚT LOGOUT TẠI ĐÂY ---
           actions: [
+            IconButton(
+              icon: const Icon(Icons.cloud_upload_outlined), // Icon đám mây
+              tooltip: "Cập nhật dữ liệu mẫu",
+              onPressed: () async {
+                // A. Hiện thông báo đang chạy
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Đang đồng bộ dữ liệu hãng xe..."),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+
+                try {
+                  // B. Gọi hàm seedData từ file data_seeder.dart
+                  await DataSeeder().seedData();
+
+                  // C. Thông báo thành công
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(" Đã cập nhật dữ liệu thành công!"),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  // D. Thông báo lỗi nếu có
+                   if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Lỗi: $e"), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.logout),
               tooltip: "Đăng xuất",
@@ -57,8 +93,11 @@ class AdminScreen extends StatelessWidget {
             SellerApprovalTab(),
             ReportTab(),
           ],
+          
         ),
+        
       ),
+      
     );
   }
 }

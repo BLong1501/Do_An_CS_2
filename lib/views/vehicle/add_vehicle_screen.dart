@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../models/vehicle_model.dart';
 import '../../providers/vehicle_provider.dart';
@@ -29,12 +32,30 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   String? _selectedFuel;
   String? _selectedLocation;
 
+  // 3. Biến quản lý danh sách ảnh đã chọn
+  final List<File> _selectedImages = [];
+  final ImagePicker _picker = ImagePicker();
   @override
   void initState() {
     super.initState();
     // 1. GỌI HÀM TẢI DỮ LIỆU TỪ FIREBASE KHI MỞ MÀN HÌNH
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<VehicleProvider>(context, listen: false).fetchAppConfig();
+    });
+  }
+  // 4. Hàm chọn ảnh từ thư viện
+  Future<void> _pickImages() async {
+    final List<XFile> pickedFiles = await _picker.pickMultiImage(); // Chọn nhiều ảnh
+    if (pickedFiles.isNotEmpty) {
+      setState(() {
+        _selectedImages.addAll(pickedFiles.map((e) => File(e.path)).toList());
+      });
+    }
+  }
+  // Hàm xóa ảnh đã chọn (nếu user đổi ý)
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
     });
   }
 
@@ -56,6 +77,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                
                 const Text(
                   "Thông tin cơ bản",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -204,12 +226,77 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                 ),
 
                 TextFormField(
+                  
                   controller: _descController,
                   decoration: const InputDecoration(
                     labelText: "Mô tả chi tiết",
                   ),
-                  maxLines: 3,
+                  maxLines: 1,
                 ),
+                const SizedBox(height: 20),
+                // --- THÊM GIAO DIỆN CHỌN ẢNH TẠI ĐÂY ---
+                const Text("Hình ảnh xe (Tối đa 10 ảnh)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 10),
+                
+                SizedBox(
+                  height: 120,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _selectedImages.length + 1, // +1 cho nút thêm ảnh
+                    itemBuilder: (context, index) {
+                      // Nút thêm ảnh (Luôn nằm cuối)
+                      if (index == _selectedImages.length) {
+                        return GestureDetector(
+                          onTap: _pickImages,
+                          child: Container(
+                            width: 100,
+                            margin: const EdgeInsets.only(right: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.grey),
+                            ),
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_a_photo, color: Colors.grey),
+                                Text("Thêm ảnh", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      // Hiển thị ảnh đã chọn
+                      return Stack(
+                        children: [
+                          Container(
+                            width: 120,
+                            margin: const EdgeInsets.only(right: 10),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              image: DecorationImage(
+                                image: FileImage(_selectedImages[index]),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            right: 5, top: 5,
+                            child: GestureDetector(
+                              onTap: () => _removeImage(index),
+                              child: const CircleAvatar(
+                                radius: 10, backgroundColor: Colors.red,
+                                child: Icon(Icons.close, size: 15, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                const Divider(height: 30),
 
                 const SizedBox(height: 30),
                 provider.isLoading
@@ -235,19 +322,46 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
 
   void _submitData(VehicleProvider provider) async {
     if (_formKey.currentState!.validate()) {
+      // 1. Kiểm tra xem đã chọn ảnh chưa
+      if (_selectedImages.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Vui lòng chọn ít nhất 1 ảnh xe!")),
+        );
+        return;
+      }
+
+      // Hiển thị thông báo đang xử lý
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Đang tải ảnh và đăng tin...")),
+      );
+
+      // 2. Upload ảnh lên Firebase Storage để lấy link
+      // (Hàm uploadImages này bạn đã viết trong VehicleProvider ở bước trước)
+      List<String> imageUrls = await provider.uploadImages(_selectedImages);
+
+      if (imageUrls.isEmpty) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Lỗi tải ảnh, vui lòng thử lại!")),
+        );
+        return;
+      }
+
+      // 3. Tạo Model với link ảnh thật (thay vì link ảo picsum)
       final newVehicle = VehicleModel(
         id: '',
         ownerId: FirebaseAuth.instance.currentUser!.uid,
         title: _titleController.text,
         description: _descController.text,
         price: double.parse(_priceController.text),
-        brand: _selectedBrand!, // Dùng biến đã chọn từ Dropdown
-        category: _selectedCategory!, // Dùng biến đã chọn từ Dropdown
+        brand: _selectedBrand!,
+        category: _selectedCategory!,
         year: int.parse(_yearController.text),
         mileage: int.tryParse(_mileageController.text) ?? 0,
         fuelType: _selectedFuel ?? 'Xăng',
-        location: _selectedLocation!, // Dùng biến đã chọn từ Dropdown
-        images: ["https://picsum.photos/200"],
+        location: _selectedLocation!,
+        
+        images: imageUrls, // <--- QUAN TRỌNG: Dùng link ảnh thật ở đây
+        
         contactPhone: _phoneController.text,
         createdAt: DateTime.now(),
         status: 'pending',

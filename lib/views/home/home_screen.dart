@@ -2,8 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart'; // 1. Import Firestore
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:my_app/models/user_model.dart';
+import 'package:my_app/providers/vehicle_provider.dart';
 import 'package:my_app/views/auth/login_screen.dart';
 import 'package:my_app/views/profile/update_seller_screen.dart';
+import 'package:my_app/views/search/location_result_adress.dart';
+import 'package:my_app/views/search/search_screen.dart';
+import 'package:my_app/views/vehicle/all_vehicle_screen.dart';
 import 'package:my_app/views/vehicle/my_post_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -22,7 +26,64 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   // Màu chủ đạo lấy theo ảnh mẫu (Tím xanh)
-  final Color primaryColor = const Color(0xFF5D3FD3); 
+  final Color primaryColor = const Color.fromARGB(255, 48, 90, 204); 
+  String _currentLocation = "Toàn quốc";
+
+  @override
+  void initState() {
+    super.initState();
+    // Gọi hàm tải dữ liệu cấu hình (Địa điểm, Hãng xe...) ngay khi mở màn hình chính
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<VehicleProvider>(context, listen: false).fetchAppConfig();
+    });
+  }
+  // 2. Hàm mở bảng chọn địa điểm
+  void _showLocationPicker(BuildContext context) {
+    // Lấy danh sách địa điểm từ Provider (đã load từ Firebase)
+    final locations = Provider.of<VehicleProvider>(context, listen: false).locations;
+    
+    // Thêm lựa chọn "Toàn quốc" vào đầu danh sách
+    final displayList = ["Toàn quốc", ...locations];
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          height: 400, // Chiều cao bảng chọn
+          child: Column(
+            children: [
+              const Text("Chọn khu vực", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Divider(),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: displayList.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      leading: const Icon(Icons.location_on, color: Colors.grey),
+                      title: Text(displayList[index]),
+                      // Đánh dấu tích nếu đang chọn
+                      trailing: _currentLocation == displayList[index] 
+                          ? const Icon(Icons.check, color: Colors.purple) 
+                          : null,
+                      onTap: () {
+                        // Cập nhật lại UI và đóng bảng chọn
+                        setState(() {
+                          _currentLocation = displayList[index];
+                        });
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
   
   // Danh mục mẫu giống thiết kế
   final List<Map<String, dynamic>> _categories = [
@@ -30,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {'icon': Icons.two_wheeler, 'label': 'Xe máy', 'color': Colors.purple},     // Có color
     {'icon': Icons.local_shipping, 'label': 'Xe tải', 'color': Colors.orange},  // Có color
     {'icon': Icons.electric_car, 'label': 'Xe điện', 'color': Colors.green},    // Có color
-    {'icon': Icons.settings, 'label': 'Phụ tùng', 'color': Colors.grey},        // Có color
+    {'icon': Icons.more_horiz, 'label': 'Khác', 'color': Colors.grey},        // Có color
   ];
 
  @override
@@ -127,64 +188,97 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // --- B. THANH TÌM KIẾM ---
+           // --- B. TÌM KIẾM ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: const TextField(
-                  decoration: InputDecoration(
-                    hintText: "Tìm kiếm xe...",
-                    prefixIcon: Icon(Icons.search, color: Colors.grey),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 15),
+              child: InkWell( // Dùng InkWell hoặc GestureDetector để bắt sự kiện ấn
+                onTap: () {
+                  // CHUYỂN HƯỚNG SANG TRANG TÌM KIẾM
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen()));
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
                   ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10), // Thêm padding cho đẹp
+                  height: 50, // Đặt chiều cao cố định
+                  child: Row(
+                    children: [
+                      const Icon(Icons.search, color: Colors.grey),
+                      const SizedBox(width: 10),
+                      Text("Tìm kiếm xe...", style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+                    ],
+                  ),
+                  // Lưu ý: Tôi đã bỏ TextField đi và thay bằng Row + Text giả
+                  // Lý do: Để tránh bàn phím nhảy lên ngay tại màn hình Home
                 ),
               ),
             ),
             
             const SizedBox(height: 10),
 
+            
             // --- C. ĐỊA ĐIỂM & BỘ LỌC ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.location_on_outlined, color: Colors.purple, size: 18),
-                          SizedBox(width: 5),
-                          Text("Hà Nội", style: TextStyle(fontWeight: FontWeight.w600)),
-                        ],
+                    child: InkWell( // Dùng InkWell để bấm được
+                      onTap: () => _showLocationPicker(context), // <--- Bấm vào thì mở chọn tỉnh
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.location_on_outlined, color: Colors.purple, size: 18),
+                            const SizedBox(width: 5),
+                            // Hiển thị biến _currentLocation thay vì chữ cứng "Hà Nội"
+                            Text(_currentLocation, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            const Icon(Icons.arrow_drop_down, color: Colors.grey), // Thêm mũi tên cho user biết là chọn được
+                          ],
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: primaryColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: const [
-                        Icon(Icons.tune, color: Colors.white, size: 18),
-                        SizedBox(width: 5),
-                        Text("Lọc", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ],
+                  
+                  // NÚT LỌC
+                  InkWell(
+                    onTap: () {
+                      // 3. TRUYỀN ĐỊA ĐIỂM SANG SEARCH SCREEN
+                      Navigator.push(
+                        context, 
+                        MaterialPageRoute(
+                          builder: (_) => LocationResultScreen(
+                            location: _currentLocation, // <--- Truyền tham số tại đây
+                          )
+                        )
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: const [
+                          Icon(Icons.tune, color: Colors.white, size: 18),
+                          SizedBox(width: 5),
+                          Text("Lọc", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -233,7 +327,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const Text("Mới nhất", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   TextButton(
-                    onPressed: (){}, 
+                    onPressed: (){
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AllVehiclesScreen()));
+                    }, 
                     child: Text("Xem tất cả", style: TextStyle(color: primaryColor)),
                   ),
                 ],
@@ -246,6 +342,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   .collection('vehicles')
                   .where('status', isEqualTo: 'approved')
                   .orderBy('createdAt', descending: true)
+                  .limit(8)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {

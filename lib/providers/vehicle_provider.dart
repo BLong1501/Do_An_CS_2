@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'package:path/path.dart' as path;
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/vehicle_model.dart';
@@ -95,5 +98,34 @@ class VehicleProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+  // Hàm upload danh sách ảnh
+  Future<List<String>> uploadImages(List<File> images) async {
+    List<String> downloadUrls = [];
+    
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      for (var image in images) {
+        // Tạo tên file duy nhất: vehicles/timestamp_filename
+        String fileName = "${DateTime.now().millisecondsSinceEpoch}_${path.basename(image.path)}";
+        final ref = FirebaseStorage.instance.ref().child('vehicles/$fileName');
+        
+        // Upload
+        await ref.putFile(image);
+        
+        // Lấy link
+        String url = await ref.getDownloadURL();
+        downloadUrls.add(url);
+      }
+    } catch (e) {
+      print("Lỗi upload ảnh: $e");
+      // Có thể ném lỗi hoặc trả về list rỗng tùy logic
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return downloadUrls;
   }
 }

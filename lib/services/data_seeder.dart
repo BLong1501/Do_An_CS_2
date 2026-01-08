@@ -3,85 +3,109 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class DataSeeder {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // 1. Dữ liệu Categories (Giữ nguyên)
+  // 1. Dữ liệu Categories
   final List<String> categories = [
     'Xe máy', 'Ô tô', 'Xe đạp', 'Xe tải', 'Xe điện', 'Phụ tùng', 'Tàu thuyền'
   ];
 
-  // 2. Dữ liệu Brands được phân loại rõ ràng (Map)
+  // 2. Mapping Hãng xe (ĐÃ BỔ SUNG TESLA & CẬP NHẬT)
   final Map<String, List<String>> brandMapping = {
     'Xe máy': [
-      'Honda', 'Yamaha', 'Suzuki', 'Piaggio', 'SYM', 'VinFast', 'Ducati', 'Kawasaki'
+      'Honda', 'Yamaha', 'Suzuki', 'Piaggio', 'SYM', 'VinFast', 'Ducati', 'Kawasaki', 'BMW'
     ],
     'Ô tô': [
       'Toyota', 'Hyundai', 'Kia', 'Mazda', 'Ford', 'Honda', 'VinFast', 
-      'Mercedes', 'BMW', 'Audi', 'Lexus', 'Mitsubishi'
+      'Mercedes', 'BMW', 'Audi', 'Lexus', 'Mitsubishi', 'Tesla', 'Land Rover', 'Porsche'
     ],
     'Xe đạp': [
       'Asama', 'Giant', 'Martin', 'Thống Nhất', 'Galaxy'
     ],
     'Xe tải': [
-      'Thaco', 'Hyundai', 'Isuzu', 'Hino', 'Dongfeng', 'Fuso', 'Kia', 'Jac','Howo'
+      'Thaco', 'Hyundai', 'Isuzu', 'Hino', 'Dongfeng', 'Fuso', 'Kia', 'JAC', 'Howo'
     ],
     'Xe điện': [
-      'VinFast', 'Pega', 'Yadea', 'Dat Bike'
+      'VinFast', 'Pega', 'Yadea', 'Dat Bike', 'Tesla' // Tesla cũng là xe điện
     ]
   };
 
   final List<String> fuelTypes = ['Xăng', 'Dầu', 'Điện', 'Hybrid'];
 
   final List<String> locations = [
-    'Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Nghệ An', 'Thanh Hóa','Huế'
+    'Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Nghệ An', 'Thanh Hóa', 'Huế',
+    'Bình Dương', 'Đồng Nai', 'Quảng Ninh' // Thêm vài tỉnh hay mua bán xe
   ];
 
+  // --- 3. CÁC MỤC MỚI BỔ SUNG ---
+  final List<String> colors = ['Đen', 'Trắng', 'Đỏ', 'Bạc', 'Xám', 'Xanh', 'Vàng', 'Cam', 'Nâu', 'Khác'];
+  
+  final List<String> conditions = ['Xe mới', 'Đã sử dụng', 'Xe lướt (Like New)'];
+  
+  final List<String> gearboxes = ['Số tự động', 'Số sàn', 'Bán tự động'];
+
+
+  // --- HÀM CHẠY SEED ---
   Future<void> seedData() async {
     print("⏳ Đang bắt đầu đẩy dữ liệu...");
     
-    // Upload danh sách đơn giản
+    // Upload từng phần
     await _uploadSimpleList('categories', categories);
     await _uploadSimpleList('fuel_types', fuelTypes);
     await _uploadSimpleList('locations', locations);
+    
+    // Upload các mục mới bổ sung
+    await _uploadSimpleList('colors', colors);
+    await _uploadSimpleList('conditions', conditions);
+    await _uploadSimpleList('gearboxes', gearboxes);
 
-    // Upload Brands theo logic mới (Quan trọng)
+    // Upload Brands logic phức tạp
     await _uploadBrands();
     
-    print("✅ Đã khởi tạo dữ liệu thành công!");
+    print(" Đã khởi tạo dữ liệu thành công!");
   }
 
-  // Hàm upload danh sách đơn giản (Categories, Locations...)
+  // Hàm upload danh sách đơn giản (Có merge: true để không mất dữ liệu cũ nếu có field khác)
   Future<void> _uploadSimpleList(String collectionName, List<String> items) async {
-    final batch = _db.batch();
+    // Lưu ý: Nếu list > 500 item phải chia batch, nhưng ở đây list ngắn nên OK
+    WriteBatch batch = _db.batch();
+    
     for (var item in items) {
       final docRef = _db.collection(collectionName).doc(item);
       batch.set(docRef, {
         'name': item,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+        // Dùng SetOptions merge để không ghi đè mất field khác (nếu sau này bạn thêm ảnh icon cho category chẳng hạn)
+      }, SetOptions(merge: true)); 
     }
     await batch.commit();
+    print("   -> Đã xong collection: $collectionName");
   }
 
-  // Hàm xử lý logic Brand thông minh
+  // Hàm xử lý Brands
   Future<void> _uploadBrands() async {
-    final batch = _db.batch();
+    WriteBatch batch = _db.batch();
+    int count = 0; // Đếm để tránh quá 500
 
-    // Duyệt qua từng loại xe trong Map
     for (var entry in brandMapping.entries) {
-      String category = entry.key; // Ví dụ: "Xe máy"
-      List<String> brands = entry.value; // Ví dụ: ["Honda", "Yamaha"...]
+      String category = entry.key; 
+      List<String> brands = entry.value;
 
       for (var brandName in brands) {
         final docRef = _db.collection('brands').doc(brandName);
         
-        // Dùng SetOptions(merge: true) để gộp dữ liệu
-        // Ví dụ: Honda xuất hiện ở Xe máy và Ô tô -> Nó sẽ thêm cả 2 vào mảng 'types'
         batch.set(docRef, {
           'name': brandName,
-          'types': FieldValue.arrayUnion([category]), // Thêm loại xe vào mảng
-          'createdAt': FieldValue.serverTimestamp(),
+          'types': FieldValue.arrayUnion([category]), 
         }, SetOptions(merge: true));
+
+        count++;
+        // Kỹ thuật an toàn: Nếu batch đầy 450 item thì commit rồi tạo batch mới
+        if (count >= 450) {
+          await batch.commit();
+          batch = _db.batch();
+          count = 0;
+        }
       }
     }
-    await batch.commit();
+    await batch.commit(); // Commit nốt số còn lại
+    print("   -> Đã xong Brands (Có xử lý gộp loại xe)");
   }
 }

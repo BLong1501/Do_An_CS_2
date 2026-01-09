@@ -2,15 +2,17 @@ enum UserRole { user, seller, admin }
 
 class UserModel {
   final String uid;
-  final String email;
-  final String displayName;
-  final String? phoneNumber;    // Cần để liên hệ mua bán
-  final String? photoUrl;       // Ảnh đại diện
+  final String email;           // Dùng để đăng nhập (Gmail)
+  final String displayName;     // Tên đầy đủ (Lấy từ Google, VD: Nguyễn Văn A)
+  final String? username;       // [MỚI] Biệt danh/Tên người dùng (VD: nguyenvana99)
+  
+  final String? phoneNumber;    
+  final String? photoUrl;       
   final UserRole role;
-  final bool isActive;          // Để Admin khóa/mở tài khoản
-  final bool isPendingUpgrade;  // Đang chờ duyệt lên Seller
-  final String? address;        // Khu vực của người dùng
-  final List<String> favoritePostIds; // Danh sách ID các xe đã thả tim
+  final bool isActive;          
+  final bool isPendingUpgrade;  
+  final String? address;        
+  final List<String> favoritePostIds; 
   final DateTime createdAt;
   final DateTime? lastLoginAt;
 
@@ -18,6 +20,7 @@ class UserModel {
     required this.uid,
     required this.email,
     required this.displayName,
+    this.username, // Thêm vào đây (có thể null nếu user chưa đặt)
     this.phoneNumber,
     this.photoUrl,
     this.role = UserRole.user,
@@ -29,10 +32,11 @@ class UserModel {
     this.lastLoginAt,
   });
 
-  // Chuyển sang Map để lưu lên Firestore
+  // Lưu lên Firestore
   Map<String, dynamic> toMap() => {
         'email': email,
         'displayName': displayName,
+        'username': username, // Lưu biệt danh lên server
         'phoneNumber': phoneNumber,
         'photoUrl': photoUrl,
         'role': role.name,
@@ -44,12 +48,13 @@ class UserModel {
         'lastLoginAt': lastLoginAt?.toIso8601String(),
       };
 
-  // Đọc dữ liệu từ Firestore
+  // Đọc về App
   factory UserModel.fromMap(Map<String, dynamic> data, String id) {
     return UserModel(
       uid: id,
       email: data['email'] ?? '',
       displayName: data['displayName'] ?? '',
+      username: data['username'], // Đọc biệt danh về
       phoneNumber: data['phoneNumber'],
       photoUrl: data['photoUrl'],
       role: UserRole.values.firstWhere(

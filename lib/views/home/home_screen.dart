@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:my_app/models/user_model.dart';
 import 'package:my_app/providers/vehicle_provider.dart';
 import 'package:my_app/views/auth/login_screen.dart';
+import 'package:my_app/views/favourite/favourite_screen.dart';
 import 'package:my_app/views/profile/update_seller_screen.dart';
 import 'package:my_app/views/search/location_result_adress.dart';
 import 'package:my_app/views/search/search_screen.dart';
 import 'package:my_app/views/vehicle/all_vehicle_screen.dart';
 import 'package:my_app/views/vehicle/my_post_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:my_app/views/search/category_result_screen.dart';
 
 import '../../models/vehicle_model.dart';
 import '../../providers/auth_provider.dart';
@@ -141,11 +143,20 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.person, size: 14, color: Colors.green),
+                 Icon(Icons.person, size: 14,
+                 color: user?.role.name == 'seller'
+                 ? Colors.yellow[800]
+                 : Colors.green[800]),
                 const SizedBox(width: 4),
                 Text(
-                  user?.role.name.toUpperCase() ?? "GUEST",
-                  style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
+                  user?.displayName.toUpperCase() ?? "GUEST",
+                  style:TextStyle(
+                    color: user?.role.name == 'seller'
+                    ? Colors.yellow[800]
+                    : Colors.green[800],
+                    fontWeight: FontWeight.w700,
+                  )
+                  
                 ),
               ],
             ),
@@ -297,24 +308,44 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.only(left: 16),
                 itemCount: _categories.length,
                 itemBuilder: (context, index) {
-                  return Container(
-                    margin: const EdgeInsets.only(right: 16),
-                    width: 70,
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(15),
-                          decoration: BoxDecoration(
-                            color: _categories[index]['color'].withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: Icon(_categories[index]['icon'], color: _categories[index]['color']),
+                  return InkWell(
+                    onTap: () {
+                      // 1. Lấy tên danh mục (VD: Xe máy)
+                      String categoryName = _categories[index]['label'];
+                      
+                      // 2. Chuyển hướng sang màn hình kết quả
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CategoryResultScreen(category: categoryName),
                         ),
-                        const SizedBox(height: 8),
-                        Text(_categories[index]['label'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-                      ],
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(15), // Bo góc hiệu ứng bấm cho đẹp
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 16),
+                      width: 70,
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(15),
+                            decoration: BoxDecoration(
+                              color: _categories[index]['color'].withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Icon(_categories[index]['icon'], color: _categories[index]['color']),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _categories[index]['label'], 
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   );
+                  // -------------------
                 },
               ),
             ),
@@ -439,7 +470,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     Icons.favorite_border, 
                     "Yêu thích", 
                     false, 
-                    onTap: () { /* TODO: Mở màn hình yêu thích */ }
+                    onTap: () { 
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoriteScreen()));
+                    }
                   ),
 
                   // --- ITEM 5: TÀI KHOẢN (Chung) ---

@@ -24,13 +24,25 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   final _mileageController = TextEditingController();
   final _phoneController = TextEditingController();
   final _descController = TextEditingController();
+  // --- THÊM MỚI ---
+  final TextEditingController _capacityController =
+      TextEditingController(); // Dung tích
+  final TextEditingController _weightController =
+      TextEditingController(); // Trọng lượng
 
+  String? _selectedCondition; // Lưu tình trạng xe
+  String? _selectedOrigin; // Lưu xuất xứ
+
+  // List dữ liệu cứng (Hoặc lấy từ Provider nếu muốn)
+  final List<String> _conditions = ["Xe mới", "Đã sử dụng"];
+  final List<String> _origins = ["Lắp ráp trong nước", "Nhập khẩu"];
   // Biến lưu giá trị được chọn từ Dropdown
   // Lưu ý: Để null ban đầu để bắt buộc người dùng phải chọn
   String? _selectedCategory;
   String? _selectedBrand;
   String? _selectedFuel;
   String? _selectedLocation;
+  String? _selectedColor; // Thêm biến này
 
   // 3. Biến quản lý danh sách ảnh đã chọn
   final List<File> _selectedImages = [];
@@ -43,15 +55,18 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       Provider.of<VehicleProvider>(context, listen: false).fetchAppConfig();
     });
   }
+
   // 4. Hàm chọn ảnh từ thư viện
   Future<void> _pickImages() async {
-    final List<XFile> pickedFiles = await _picker.pickMultiImage(); // Chọn nhiều ảnh
+    final List<XFile> pickedFiles = await _picker
+        .pickMultiImage(); // Chọn nhiều ảnh
     if (pickedFiles.isNotEmpty) {
       setState(() {
         _selectedImages.addAll(pickedFiles.map((e) => File(e.path)).toList());
       });
     }
   }
+
   // Hàm xóa ảnh đã chọn (nếu user đổi ý)
   void _removeImage(int index) {
     setState(() {
@@ -77,7 +92,6 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                
                 const Text(
                   "Thông tin cơ bản",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -169,7 +183,102 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                 ),
 
                 const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedCondition,
+                        hint: const Text("Tình trạng"),
+                        items: _conditions
+                            .map(
+                              (e) => DropdownMenuItem(value: e, child: Text(e)),
+                            )
+                            .toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedCondition = val;
+                            if (val == "Xe mới")
+                              _mileageController.text =
+                                  "0"; // Xe mới thì Odo = 0
+                          });
+                        },
+                        validator: (val) =>
+                            val == null ? 'Chọn tình trạng' : null,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedOrigin,
+                        hint: const Text("Xuất xứ"),
+                        items: _origins
+                            .map(
+                              (e) => DropdownMenuItem(value: e, child: Text(e)),
+                            )
+                            .toList(),
+                        onChanged: (val) =>
+                            setState(() => _selectedOrigin = val),
+                        validator: (val) => val == null ? 'Chọn xuất xứ' : null,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
 
+                // 2. SỐ KM & TRỌNG LƯỢNG
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _mileageController,
+                        enabled:
+                            _selectedCondition !=
+                            "Xe mới", // Khóa nếu là xe mới
+                        decoration: const InputDecoration(
+                          labelText: "Số Km đã đi",
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (val) => val!.isEmpty ? 'Nhập số Km' : null,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _weightController,
+                        decoration: const InputDecoration(
+                          labelText: "Trọng lượng (kg)",
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // 3. DUNG TÍCH
+                TextFormField(
+                  controller: _capacityController,
+                  decoration: const InputDecoration(
+                    labelText: "Dung tích động cơ (VD: 150cc, 2.0L)",
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // 👇 THÊM DROPDOWN MÀU SẮC TẠI ĐÂY
+                DropdownButtonFormField<String>(
+                  value: _selectedColor,
+                  hint: const Text("Màu sắc"),
+                  items: provider
+                      .colors // Lấy danh sách màu từ Provider bạn vừa sửa
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (val) => setState(() => _selectedColor = val),
+                  validator: (val) => val == null ? 'Chọn màu xe' : null,
+                  decoration: const InputDecoration(
+                    labelText: "Màu ngoại thất",
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
@@ -226,7 +335,6 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                 ),
 
                 TextFormField(
-                  
                   controller: _descController,
                   decoration: const InputDecoration(
                     labelText: "Mô tả chi tiết",
@@ -235,14 +343,18 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                 ),
                 const SizedBox(height: 20),
                 // --- THÊM GIAO DIỆN CHỌN ẢNH TẠI ĐÂY ---
-                const Text("Hình ảnh xe (Tối đa 10 ảnh)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Text(
+                  "Hình ảnh xe (Tối đa 10 ảnh)",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
                 const SizedBox(height: 10),
-                
+
                 SizedBox(
                   height: 120,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    itemCount: _selectedImages.length + 1, // +1 cho nút thêm ảnh
+                    itemCount:
+                        _selectedImages.length + 1, // +1 cho nút thêm ảnh
                     itemBuilder: (context, index) {
                       // Nút thêm ảnh (Luôn nằm cuối)
                       if (index == _selectedImages.length) {
@@ -260,7 +372,13 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.add_a_photo, color: Colors.grey),
-                                Text("Thêm ảnh", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                Text(
+                                  "Thêm ảnh",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -282,12 +400,18 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                             ),
                           ),
                           Positioned(
-                            right: 5, top: 5,
+                            right: 5,
+                            top: 5,
                             child: GestureDetector(
                               onTap: () => _removeImage(index),
                               child: const CircleAvatar(
-                                radius: 10, backgroundColor: Colors.red,
-                                child: Icon(Icons.close, size: 15, color: Colors.white),
+                                radius: 10,
+                                backgroundColor: Colors.red,
+                                child: Icon(
+                                  Icons.close,
+                                  size: 15,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
@@ -340,7 +464,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       List<String> imageUrls = await provider.uploadImages(_selectedImages);
 
       if (imageUrls.isEmpty) {
-         ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Lỗi tải ảnh, vui lòng thử lại!")),
         );
         return;
@@ -359,12 +483,16 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
         mileage: int.tryParse(_mileageController.text) ?? 0,
         fuelType: _selectedFuel ?? 'Xăng',
         location: _selectedLocation!,
-        
+        color: _selectedColor!,
         images: imageUrls, // <--- QUAN TRỌNG: Dùng link ảnh thật ở đây
-        
+
         contactPhone: _phoneController.text,
         createdAt: DateTime.now(),
         status: 'pending',
+        condition: _selectedCondition!,
+        origin: _selectedOrigin!,
+        capacity: _capacityController.text,
+        weight: int.tryParse(_weightController.text) ?? 0,
       );
 
       final success = await provider.uploadVehicle(newVehicle);

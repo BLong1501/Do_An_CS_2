@@ -14,12 +14,16 @@ class VehicleModel {
   final String location;
   final List<String> images;
   final String contactPhone;
-  final bool isNegotiable;
-  final int views;
-  final String status; // pending, approved, rejected, sold
-  final String? approvedBy;
-  final DateTime? approvedAt;
   final DateTime createdAt;
+  final String status;
+
+  // --- 1. THÊM CÁC TRƯỜNG MỚI TẠI ĐÂY ---
+  final String condition; // "Xe mới" hoặc "Đã sử dụng"
+  final String origin;    // "Nhập khẩu" hoặc "Lắp ráp trong nước"
+  final String capacity;  // Ví dụ: "150cc", "2.0L"
+  final int weight;       // Đơn vị kg
+  // ---------------------------------------
+  final String color;
 
   VehicleModel({
     required this.id,
@@ -35,34 +39,40 @@ class VehicleModel {
     required this.location,
     required this.images,
     required this.contactPhone,
-    this.isNegotiable = false,
-    this.views = 0,
-    this.status = 'pending',
-    this.approvedBy,
-    this.approvedAt,
     required this.createdAt,
+    required this.status,
+    // Nhớ thêm vào constructor
+    required this.condition,
+    required this.origin,
+    required this.capacity,
+    required this.weight,
+    required this.color,
   });
 
-  Map<String, dynamic> toMap() => {
-    'ownerId': ownerId,
-    'title': title,
-    'description': description,
-    'price': price,
-    'brand': brand,
-    'category': category,
-    'year': year,
-    'mileage': mileage,
-    'fuelType': fuelType,
-    'location': location,
-    'images': images,
-    'contactPhone': contactPhone,
-    'isNegotiable': isNegotiable,
-    'views': views,
-    'status': status,
-    'approvedBy': approvedBy,
-    'approvedAt': approvedAt != null ? Timestamp.fromDate(approvedAt!) : null,
-    'createdAt': Timestamp.fromDate(createdAt),
-  };
+  Map<String, dynamic> toMap() {
+    return {
+      'ownerId': ownerId,
+      'title': title,
+      'description': description,
+      'price': price,
+      'brand': brand,
+      'category': category,
+      'year': year,
+      'mileage': mileage,
+      'fuelType': fuelType,
+      'location': location,
+      'images': images,
+      'contactPhone': contactPhone,
+      'createdAt': createdAt,
+      'status': status,
+      // Thêm vào Map để đẩy lên Firebase
+      'condition': condition,
+      'origin': origin,
+      'capacity': capacity,
+      'weight': weight,
+      'color': color,
+    };
+  }
 
   factory VehicleModel.fromMap(Map<String, dynamic> map, String id) {
     return VehicleModel(
@@ -73,18 +83,20 @@ class VehicleModel {
       price: (map['price'] ?? 0).toDouble(),
       brand: map['brand'] ?? '',
       category: map['category'] ?? '',
-      year: map['year'] ?? 2000,
+      year: map['year'] ?? 0,
       mileage: map['mileage'] ?? 0,
-      fuelType: map['fuelType'] ?? 'Xăng',
+      fuelType: map['fuelType'] ?? '',
       location: map['location'] ?? '',
       images: List<String>.from(map['images'] ?? []),
       contactPhone: map['contactPhone'] ?? '',
-      isNegotiable: map['isNegotiable'] ?? false,
-      views: map['views'] ?? 0,
-      status: map['status'] ?? 'pending',
-      approvedBy: map['approvedBy'],
-      approvedAt: map['approvedAt'] != null ? (map['approvedAt'] as Timestamp).toDate() : null,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
+      status: map['status'] ?? 'pending',
+      // Lấy từ Firebase về (kèm giá trị mặc định tránh lỗi data cũ)
+      condition: map['condition'] ?? 'Đã sử dụng',
+      origin: map['origin'] ?? 'Lắp ráp trong nước',
+      capacity: map['capacity'] ?? '',
+      weight: map['weight'] ?? 0,
+      color: map['color'] ?? 'Khác',
     );
   }
 }

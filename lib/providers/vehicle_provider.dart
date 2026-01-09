@@ -34,6 +34,9 @@ class VehicleProvider extends ChangeNotifier {
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+  // ...
+  List<String> _colors = []; // 1. Thêm biến chứa màu
+  List<String> get colors => _colors; // Getter
 
   // 3. HÀM MỚI: LỌC BRAND THEO CATEGORY
   // Hàm này sẽ được gọi từ UI (AddVehicleScreen)
@@ -58,6 +61,7 @@ class VehicleProvider extends ChangeNotifier {
         _db.collection('brands').get(),
         _db.collection('fuel_types').get(),
         _db.collection('locations').get(),
+        _db.collection('colors').get(), // 2. Lấy thêm collection 'colors'
       ]);
 
       // Lấy Categories
@@ -75,6 +79,7 @@ class VehicleProvider extends ChangeNotifier {
       // Lấy Fuel & Locations
       _fuelTypes = results[2].docs.map((d) => d['name'] as String).toList();
       _locations = results[3].docs.map((d) => d['name'] as String).toList();
+      _colors = results[4].docs.map((d) => d['name'] as String).toList();
       
     } catch (e) {
       print("Lỗi tải cấu hình: $e");

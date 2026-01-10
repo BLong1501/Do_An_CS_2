@@ -6,16 +6,15 @@ class AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  
-  // HÀM ĐANG THIẾU CỦA BẠN ĐÂY:
+  // 1. Lấy thông tin User hiện tại (ĐÃ CHUẨN)
   Future<UserModel?> getCurrentUserData() async {
     try {
       User? firebaseUser = _auth.currentUser;
       if (firebaseUser != null) {
-        // Lấy document từ collection 'users' dựa trên UID của người dùng
         DocumentSnapshot doc = await _db.collection('users').doc(firebaseUser.uid).get();
         
         if (doc.exists) {
+          // Model mới của bạn đã xử lý tốt các trường thiếu bằng giá trị mặc định
           return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
         }
       }
@@ -26,30 +25,38 @@ class AuthRepository {
     }
   }
 
-  // Hàm register (đã có từ trước)
-  // Hàm register cập nhật cho UserModel mới
-  Future<void> register(String email, String password, String name) async {
-    // 1. Tạo tài khoản trên Firebase Auth
+  // 2. Hàm Đăng ký (Cập nhật thêm tham số phone và address cho đầy đủ)
+  // Mặc dù hiện tại AuthProvider đang tự xử lý, nhưng cập nhật ở đây để sau này dùng lại được
+  Future<void> register({
+    required String email, 
+    required String password, 
+    required String name,
+    String? phone,    // Thêm số điện thoại
+    String? address,  // Thêm địa chỉ
+  }) async {
+    // 1. Tạo tài khoản Auth
     UserCredential credential = await _auth.createUserWithEmailAndPassword(
       email: email, 
       password: password
     );
     
-    // 2. Tạo đối tượng UserModel với đầy đủ các trường mới
+    // 2. Tạo Model với đầy đủ thông tin mới
     UserModel newUser = UserModel(
       uid: credential.user!.uid, 
       email: email, 
       displayName: name,
-      role: UserRole.user,          // Mặc định là người dùng thường
-      isActive: true,               // Mặc định tài khoản được hoạt động
-      isPendingUpgrade: false,      // Chưa gửi yêu cầu nâng cấp
-      favoritePostIds: [],          // Danh sách yêu thích trống
-      createdAt: DateTime.now(),    // Ngày tạo là hiện tại
+      phoneNumber: phone,       // Lưu SĐT
+      address: address,         // Lưu địa chỉ
+      role: UserRole.user,
+      isActive: true,
+      isPendingUpgrade: false,
+      favoritePostIds: [],
+      createdAt: DateTime.now(),
+      followers: 0, // Mặc định 0
+      following: 0, // Mặc định 0
     );
     
-    // 3. Lưu toàn bộ thông tin lên Firestore
+    // 3. Lưu lên Firestore
     await _db.collection('users').doc(credential.user!.uid).set(newUser.toMap());
-  
-}
-
+  }
 }

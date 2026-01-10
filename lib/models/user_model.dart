@@ -2,19 +2,22 @@ enum UserRole { user, seller, admin }
 
 class UserModel {
   final String uid;
-  final String email;           // Dùng để đăng nhập (Gmail)
-  final String displayName;     // Tên đầy đủ (Lấy từ Google, VD: Nguyễn Văn A)
-  final String? username;       // [MỚI] Biệt danh/Tên người dùng (VD: nguyenvana99)
-  
-  final String? phoneNumber;    
-  final String? photoUrl;       
+  final String email; // Dùng để đăng nhập (Gmail)
+  final String displayName; // Tên đầy đủ (Lấy từ Google, VD: Nguyễn Văn A)
+  final String? username; // [MỚI] Biệt danh/Tên người dùng (VD: nguyenvana99)
+
+  final String? phoneNumber;
+  final String? photoUrl;
   final UserRole role;
-  final bool isActive;          
-  final bool isPendingUpgrade;  
-  final String? address;        
-  final List<String> favoritePostIds; 
+  final bool isActive;
+  final bool isPendingUpgrade;
+  final String? address;
+  final List<String> favoritePostIds;
   final DateTime createdAt;
   final DateTime? lastLoginAt;
+  // 👇 [MỚI 1] THÊM 2 BIẾN ĐẾM
+  final int followers; // Số người đang theo dõi mình
+  final int following; // Số người mình đang theo dõi
 
   UserModel({
     required this.uid,
@@ -30,23 +33,27 @@ class UserModel {
     this.favoritePostIds = const [],
     required this.createdAt,
     this.lastLoginAt,
+    this.followers = 0,
+    this.following = 0,
   });
 
   // Lưu lên Firestore
   Map<String, dynamic> toMap() => {
-        'email': email,
-        'displayName': displayName,
-        'username': username, // Lưu biệt danh lên server
-        'phoneNumber': phoneNumber,
-        'photoUrl': photoUrl,
-        'role': role.name,
-        'isActive': isActive,
-        'isPendingUpgrade': isPendingUpgrade,
-        'address': address,
-        'favoritePostIds': favoritePostIds,
-        'createdAt': createdAt.toIso8601String(),
-        'lastLoginAt': lastLoginAt?.toIso8601String(),
-      };
+    'email': email,
+    'displayName': displayName,
+    'username': username, // Lưu biệt danh lên server
+    'phoneNumber': phoneNumber,
+    'photoUrl': photoUrl,
+    'role': role.name,
+    'isActive': isActive,
+    'isPendingUpgrade': isPendingUpgrade,
+    'address': address,
+    'favoritePostIds': favoritePostIds,
+    'createdAt': createdAt.toIso8601String(),
+    'lastLoginAt': lastLoginAt?.toIso8601String(),
+    'followers': followers,
+    'following': following,
+  };
 
   // Đọc về App
   factory UserModel.fromMap(Map<String, dynamic> data, String id) {
@@ -54,6 +61,7 @@ class UserModel {
       uid: id,
       email: data['email'] ?? '',
       displayName: data['displayName'] ?? '',
+
       username: data['username'], // Đọc biệt danh về
       phoneNumber: data['phoneNumber'],
       photoUrl: data['photoUrl'],
@@ -65,12 +73,14 @@ class UserModel {
       isPendingUpgrade: data['isPendingUpgrade'] ?? false,
       address: data['address'],
       favoritePostIds: List<String>.from(data['favoritePostIds'] ?? []),
-      createdAt: data['createdAt'] != null 
-          ? DateTime.parse(data['createdAt']) 
+      createdAt: data['createdAt'] != null
+          ? DateTime.parse(data['createdAt'])
           : DateTime.now(),
-      lastLoginAt: data['lastLoginAt'] != null 
-          ? DateTime.parse(data['lastLoginAt']) 
+      lastLoginAt: data['lastLoginAt'] != null
+          ? DateTime.parse(data['lastLoginAt'])
           : null,
+      followers: data['followers'] ?? 0,
+      following: data['following'] ?? 0,
     );
   }
 }

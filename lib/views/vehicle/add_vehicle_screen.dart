@@ -1,6 +1,7 @@
 import 'dart:io';
 
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import '../../providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -8,7 +9,8 @@ import '../../models/vehicle_model.dart';
 import '../../providers/vehicle_provider.dart';
 
 class AddVehicleScreen extends StatefulWidget {
-  const AddVehicleScreen({super.key});
+  final bool isStorePost;
+  const AddVehicleScreen({super.key,this.isStorePost = false});
 
   @override
   State<AddVehicleScreen> createState() => _AddVehicleScreenState();
@@ -444,6 +446,9 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     );
   }
 
+  // Nhớ import ở đầu file:
+// import '../../providers/auth_provider.dart'; 
+
   void _submitData(VehicleProvider provider) async {
     if (_formKey.currentState!.validate()) {
       // 1. Kiểm tra xem đã chọn ảnh chưa
@@ -454,13 +459,44 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
         return;
       }
 
+      // 2. Lấy thông tin User hiện tại từ AuthProvider
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final currentUser = authProvider.user;
+
+      if (currentUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Lỗi: Không tìm thấy thông tin người dùng!")),
+        );
+        return; 
+      }
+
+      // --- 👇 LOGIC QUYẾT ĐỊNH TÊN SHOP HAY CÁ NHÂN 👇 ---
+      String? finalStoreName;
+      
+      // widget.isStorePost là biến mình đã thêm vào widget ở bước trước
+      if (widget.isStorePost) {
+        // A. Nếu đang đăng từ tab "Cửa hàng của tôi"
+        if (currentUser.storeName != null && currentUser.storeName!.isNotEmpty) {
+          finalStoreName = currentUser.storeName;
+        } else {
+          // Trường hợp lỗi: Vào tab cửa hàng nhưng profile chưa có tên cửa hàng
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Lỗi: Bạn chưa thiết lập tên cửa hàng!")),
+          );
+          return;
+        }
+      } else {
+        // B. Nếu đăng từ "Trang chủ" -> Đăng với tư cách cá nhân
+        finalStoreName = null; 
+      }
+      // ----------------------------------------------------
+
       // Hiển thị thông báo đang xử lý
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Đang tải ảnh và đăng tin...")),
       );
 
-      // 2. Upload ảnh lên Firebase Storage để lấy link
-      // (Hàm uploadImages này bạn đã viết trong VehicleProvider ở bước trước)
+      // 3. Upload ảnh lên Firebase Storage
       List<String> imageUrls = await provider.uploadImages(_selectedImages);
 
       if (imageUrls.isEmpty) {
@@ -470,10 +506,13 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
         return;
       }
 
-      // 3. Tạo Model với link ảnh thật (thay vì link ảo picsum)
+      // 4. Tạo Model Xe (Cập nhật đúng storeName)
       final newVehicle = VehicleModel(
-        id: '',
-        ownerId: FirebaseAuth.instance.currentUser!.uid,
+        id: '', // Firestore tự sinh
+        
+        ownerId: currentUser.uid,      // ID người dùng (dù là shop hay cá nhân thì ID vẫn vậy)
+        storeName: finalStoreName,     // 👇 QUAN TRỌNG: null (cá nhân) hoặc Tên Shop (cửa hàng)
+
         title: _titleController.text,
         description: _descController.text,
         price: double.parse(_priceController.text),
@@ -484,8 +523,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
         fuelType: _selectedFuel ?? 'Xăng',
         location: _selectedLocation!,
         color: _selectedColor!,
-        images: imageUrls, // <--- QUAN TRỌNG: Dùng link ảnh thật ở đây
-
+        images: imageUrls, 
         contactPhone: _phoneController.text,
         createdAt: DateTime.now(),
         status: 'pending',
@@ -495,11 +533,19 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
         weight: int.tryParse(_weightController.text) ?? 0,
       );
 
+      // 5. Gửi dữ liệu đi
       final success = await provider.uploadVehicle(newVehicle);
+      
       if (success && mounted) {
         Navigator.pop(context);
+        
+        // Thông báo rõ ràng cho người dùng biết
+        String message = widget.isStorePost 
+            ? "Đã đăng tin dưới tên Cửa hàng: $finalStoreName"
+            : "Đã đăng tin Cá nhân thành công!";
+            
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Đã gửi bài đăng, chờ Admin duyệt!")),
+          SnackBar(content: Text(message), backgroundColor: Colors.green),
         );
       }
     }

@@ -73,7 +73,36 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+  // Hàm tạo cửa hàng (Dành cho Seller, không cần duyệt)
+  Future<void> createStore({
+    required String storeName,
+    required String address,
+    required String description,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
 
+    try {
+      final uid = _user!.uid;
+      
+      // Cập nhật trực tiếp vào bảng users
+      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'storeName': storeName,
+        'address': address, // Địa chỉ kinh doanh
+        'description': description,
+        // Có thể thêm trường 'hasStore': true nếu muốn check nhanh
+      });
+
+      // Load lại user để UI cập nhật ngay lập tức
+      await fetchUserData();
+
+    } catch (e) {
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
   Future<void> login(String email, String password) async {
     _isLoading = true;
     notifyListeners();

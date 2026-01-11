@@ -18,7 +18,10 @@ class UserModel {
   // 👇 [MỚI 1] THÊM 2 BIẾN ĐẾM
   final int followers; // Số người đang theo dõi mình
   final int following; // Số người mình đang theo dõi
-
+  final String? storeName;   // Tên cửa hàng (Nếu có dữ liệu này => Đã tạo shop)
+  final String? taxCode;     // Mã số thuế
+  final String? description; // Mô tả cửa hàng
+  final String? storeAva;
   UserModel({
     required this.uid,
     required this.email,
@@ -35,6 +38,10 @@ class UserModel {
     this.lastLoginAt,
     this.followers = 0,
     this.following = 0,
+    this.storeName,
+    this.taxCode,
+    this.description,
+    this.storeAva
   });
 
   // Lưu lên Firestore
@@ -53,6 +60,10 @@ class UserModel {
     'lastLoginAt': lastLoginAt?.toIso8601String(),
     'followers': followers,
     'following': following,
+    'storeName': storeName,
+        'taxCode': taxCode,
+        'description': description,
+        'storeAva': storeAva, 
   };
 
   // Đọc về App
@@ -81,6 +92,55 @@ class UserModel {
           : null,
       followers: data['followers'] ?? 0,
       following: data['following'] ?? 0,
+      storeName: data['storeName'],
+      taxCode: data['taxCode'],
+      description: data['description'],
+      storeAva: data['storeAva'],
+    );
+  }
+  // 👇 THÊM HÀM NÀY VÀO CUỐI CLASS USERMODEL
+  UserModel copyWith({
+    String? uid,
+    String? email,
+    String? displayName,
+    String? username,
+    String? phoneNumber,
+    String? photoUrl,
+    UserRole? role,
+    bool? isActive,
+    bool? isPendingUpgrade,
+    String? address,
+    List<String>? favoritePostIds,
+    DateTime? createdAt,
+    DateTime? lastLoginAt,
+    int? followers,
+    int? following,
+    String? storeName,
+    String? taxCode,
+    String? description,
+    String? storeAva,
+  }) {
+    return UserModel(
+      uid: uid ?? this.uid,
+      email: email ?? this.email,
+      displayName: displayName ?? this.displayName,
+      username: username ?? this.username,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      photoUrl: photoUrl ?? this.photoUrl,
+      role: role ?? this.role,
+      isActive: isActive ?? this.isActive,
+      isPendingUpgrade: isPendingUpgrade ?? this.isPendingUpgrade,
+      address: address ?? this.address,
+      favoritePostIds: favoritePostIds ?? this.favoritePostIds,
+      createdAt: createdAt ?? this.createdAt,
+      lastLoginAt: lastLoginAt ?? this.lastLoginAt,
+      followers: followers ?? this.followers,
+      following: following ?? this.following,
+      // Các trường Store
+      storeName: storeName ?? this.storeName,
+      taxCode: taxCode ?? this.taxCode,
+      description: description ?? this.description,
+      storeAva: storeAva ?? this.storeAva,
     );
   }
 }

@@ -10,6 +10,7 @@ import 'package:my_app/views/search/location_result_adress.dart';
 import 'package:my_app/views/search/search_screen.dart';
 import 'package:my_app/views/vehicle/all_vehicle_screen.dart';
 import 'package:my_app/views/vehicle/my_post_screen.dart';
+import 'package:my_app/views/vehicle/vehicle_detail_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:my_app/views/search/category_result_screen.dart';
 
@@ -532,6 +533,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         return VehicleCard(
                           vehicle: vehicle,
                           onTap: () {
+                            Navigator.push(context,
+                            MaterialPageRoute(
+                              builder: (_)=>VehicleDetailScreen(vehicle: vehicle),
+                            ));
                             // Navigate to detail
                           },
                         );

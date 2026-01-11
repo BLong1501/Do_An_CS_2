@@ -21,7 +21,8 @@ class VehicleModel {
   final String condition; // "Xe mới" hoặc "Đã sử dụng"
   final String origin;    // "Nhập khẩu" hoặc "Lắp ráp trong nước"
   final String capacity;  // Ví dụ: "150cc", "2.0L"
-  final int weight;       // Đơn vị kg
+  final int weight;    
+  final String? storeName;   // Đơn vị kg
   // ---------------------------------------
   final String color;
 
@@ -47,6 +48,7 @@ class VehicleModel {
     required this.capacity,
     required this.weight,
     required this.color,
+    required this.storeName,
   });
 
   Map<String, dynamic> toMap() {
@@ -71,6 +73,7 @@ class VehicleModel {
       'capacity': capacity,
       'weight': weight,
       'color': color,
+      'storeName': storeName,
     };
   }
 
@@ -97,6 +100,7 @@ class VehicleModel {
       capacity: map['capacity'] ?? '',
       weight: map['weight'] ?? 0,
       color: map['color'] ?? 'Khác',
+      storeName: map['storeName'],
     );
   }
 }

@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:firebase_storage/firebase_storage.dart' ;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:my_app/views/profile/update_seller_screen.dart';
+import 'package:my_app/views/seller/seller_info_screen.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart' ;
 import '../auth/login_screen.dart';
@@ -221,6 +223,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
               }
             ),
             
+            _buildMenuItem(
+              icon: userModel.role.name == 'seller' ? Icons.storefront : Icons.add_business,
+              title: userModel.role.name == 'seller' ? 'Thông tin người bán':'Đăng ký bán hàng',
+              onTap: (){
+                if(userModel.role.name == 'seller'){
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SellerInfoScreen()));
+
+                  }else{
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const UpgradeSellerScreen())
+                    );
+
+                  }
+                }
+              ),
+
             _buildMenuItem(
               icon: Icons.history, 
               title: "Lịch sử đăng nhập", 

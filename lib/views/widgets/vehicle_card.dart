@@ -139,7 +139,8 @@ class _VehicleCardState extends State<VehicleCard> {
           children: [
             // --- 1. PHẦN ẢNH VÀ OVERLAY ---
             Expanded(
-              flex: 6, // Chiếm 6 phần chiều cao
+              flex: 5
+              , // Chiếm 6 phần chiều cao
               child: Stack(
                 children: [
                   // Ảnh nền
@@ -221,7 +222,7 @@ class _VehicleCardState extends State<VehicleCard> {
 
             // --- 2. PHẦN THÔNG TIN ---
             Expanded(
-              flex: 5, // Chiếm 5 phần chiều cao
+              flex: 6, // Chiếm 5 phần chiều cao
               child: Padding(
                 padding: const EdgeInsets.all(10.0),
                 child: Column(
@@ -229,7 +230,7 @@ class _VehicleCardState extends State<VehicleCard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween, // Căn đều dọc
                   children: [
                     // Tiêu đề
-                    Text(
+                    Text(   
                       widget.vehicle.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -255,6 +256,34 @@ class _VehicleCardState extends State<VehicleCard> {
                     ),
 
                     // Địa điểm
+                    // 👇 THÊM PHẦN NGƯỜI BÁN
+                    Row(
+                      children: [
+                        // Icon tùy thuộc là Shop hay Cá nhân
+                        Icon(
+                          widget.vehicle.storeName != null ? Icons.store : Icons.person,
+                          size: 12,
+                          color: widget.vehicle.storeName != null ? Colors.purple : Colors.grey,
+                        ),
+                        const SizedBox(width: 2),
+                        Expanded(
+                          child: Text(
+                            widget.vehicle.storeName ?? "Người bán cá nhân", // Nếu null thì hiện text mặc định
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: widget.vehicle.storeName != null ? Colors.purple : Colors.grey[700],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 2),
+
+                    // 👇 PHẦN ĐỊA ĐIỂM (Dời xuống đây)
                     Row(
                       children: [
                         Icon(Icons.location_on, size: 12, color: Colors.grey[400]),

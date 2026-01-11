@@ -90,10 +90,11 @@ class VehicleProvider extends ChangeNotifier {
   }
 
   // 5. Hàm đăng xe (Giữ nguyên)
-  Future<bool> uploadVehicle(VehicleModel vehicle) async {
+Future<bool> uploadVehicle(VehicleModel vehicle) async {
     _isLoading = true;
     notifyListeners();
     try {
+      // Gọi Repo để lưu
       await _repo.addVehicle(vehicle);
       return true;
     } catch (e) {

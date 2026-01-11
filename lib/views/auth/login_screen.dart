@@ -1,7 +1,7 @@
 // import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:my_app/views/admin/admin_screen.dart';
-import 'package:my_app/views/home/home_screen.dart';
+// import 'package:my_app/views/home/home_screen.dart';
 import 'package:my_app/views/main_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Nhớ import cái này

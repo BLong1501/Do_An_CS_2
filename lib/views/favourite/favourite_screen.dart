@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:my_app/views/vehicle/vehicle_detail_screen.dart';
 import '../../models/vehicle_model.dart';
 import '../widgets/vehicle_card.dart';
 
@@ -121,6 +122,10 @@ class FavoriteScreen extends StatelessWidget {
                   return VehicleCard(
                     vehicle: vehicle,
                     onTap: () {
+                      Navigator.push(context,
+                            MaterialPageRoute(
+                              builder: (_)=>VehicleDetailScreen(vehicle: vehicle),
+                            ));
                       // TODO: Navigate to Detail
                     },
                   );

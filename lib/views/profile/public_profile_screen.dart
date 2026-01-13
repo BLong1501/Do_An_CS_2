@@ -170,7 +170,20 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     // Nếu không tìm thấy user hoặc user bị null
     if (_sellerUser == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text("Lỗi"), backgroundColor: Colors.white, foregroundColor: Colors.black),
+        appBar: AppBar(title: const Text("Lỗi"), backgroundColor: Colors.white, foregroundColor: Colors.black,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF5D3FD3), // tím
+                Color(0xFFC51162), // hồng đậm
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      ),
         body: const Center(child: Text("Người dùng không tồn tại hoặc đã bị xóa")),
       );
     }

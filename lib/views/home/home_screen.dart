@@ -1,24 +1,24 @@
 import 'package:cloud_firestore/cloud_firestore.dart'; // 1. Import Firestore
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+// import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:my_app/models/user_model.dart';
 import 'package:my_app/providers/vehicle_provider.dart';
 import 'package:my_app/services/notification_service.dart';
-import 'package:my_app/views/auth/login_screen.dart';
-import 'package:my_app/views/favourite/favourite_screen.dart';
+// import 'package:my_app/views/auth/login_screen.dart';
+// import 'package:my_app/views/favourite/favourite_screen.dart';
 import 'package:my_app/views/notification/notification_screen.dart';
-import 'package:my_app/views/profile/update_seller_screen.dart';
+// import 'package:my_app/views/profile/update_seller_screen.dart';
 import 'package:my_app/views/search/location_result_adress.dart';
 import 'package:my_app/views/search/search_screen.dart';
 import 'package:my_app/views/vehicle/all_vehicle_screen.dart';
-import 'package:my_app/views/vehicle/my_post_screen.dart';
+// import 'package:my_app/views/vehicle/my_post_screen.dart';
 import 'package:my_app/views/vehicle/vehicle_detail_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:my_app/views/search/category_result_screen.dart';
 
 import '../../models/vehicle_model.dart';
 import '../../providers/auth_provider.dart';
-import '../vehicle/add_vehicle_screen.dart';
+// import '../vehicle/add_vehicle_screen.dart';
 import '../widgets/vehicle_card.dart'; // 2. Import Widget thẻ xe
 
 class HomeScreen extends StatefulWidget {

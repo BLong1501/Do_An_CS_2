@@ -38,7 +38,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       TextEditingController(); // Trọng lượng
 
   String? _selectedCondition; // Lưu tình trạng xe
-  String? _selectedOrigin; // Lưu xuất xứ
+  String? _selectedOrigin; // Lưu xuất xứA
 
   // List dữ liệu cứng (Hoặc lấy từ Provider nếu muốn)
   final List<String> _conditions = ["Xe mới", "Đã sử dụng"];

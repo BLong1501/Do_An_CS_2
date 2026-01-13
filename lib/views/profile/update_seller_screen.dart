@@ -17,13 +17,21 @@ class _UpgradeSellerScreenState extends State<UpgradeSellerScreen> {
   // Controllers
   final _fullNameController = TextEditingController();
   final _citizenIdController = TextEditingController();
-  final _storeNameController = TextEditingController();
+  // Đã xóa _storeNameController
   final _addressController = TextEditingController();
 
   // Biến lưu ảnh
   File? _frontImage;
   File? _backImage;
   final ImagePicker _picker = ImagePicker();
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _citizenIdController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
 
   // Hàm chọn ảnh
   Future<void> _pickImage(bool isFront) async {
@@ -45,7 +53,7 @@ class _UpgradeSellerScreenState extends State<UpgradeSellerScreen> {
     final user = authProvider.user;
     final bool isPending = user?.isPendingUpgrade ?? false;
 
-    // Nếu đang chờ duyệt thì hiện thông báo (Giữ nguyên logic cũ)
+    // Nếu đang chờ duyệt thì hiện thông báo
     if (isPending) {
       return Scaffold(
         appBar: AppBar(title: const Text("Trạng thái hồ sơ")),
@@ -70,7 +78,7 @@ class _UpgradeSellerScreenState extends State<UpgradeSellerScreen> {
     // Giao diện điền Form
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Đăng ký Kinh doanh"),
+        title: const Text("Đăng ký Người bán"),
         backgroundColor: Colors.purple,
         foregroundColor: Colors.white,
       ),
@@ -88,11 +96,12 @@ class _UpgradeSellerScreenState extends State<UpgradeSellerScreen> {
               _buildTextField("Số CCCD / CMND", _citizenIdController, Icons.badge, isNumber: true),
               
               const SizedBox(height: 20),
-              const Text("Thông tin cửa hàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.purple)),
+              // Đổi tên tiêu đề cho hợp lý
+              const Text("Thông tin liên hệ", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.purple)),
               const SizedBox(height: 10),
               
-              _buildTextField("Tên cửa hàng / Shop", _storeNameController, Icons.store),
-              _buildTextField("Địa chỉ kinh doanh", _addressController, Icons.location_on),
+              // Đã xóa ô nhập Tên cửa hàng
+              _buildTextField("Địa chỉ thường trú / Kinh doanh", _addressController, Icons.location_on),
 
               const SizedBox(height: 20),
               const Text("Xác thực hình ảnh", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.purple)),
@@ -131,10 +140,11 @@ class _UpgradeSellerScreenState extends State<UpgradeSellerScreen> {
                             }
 
                             try {
+                              // CẬP NHẬT HÀM GỌI (Bỏ storeName)
                               await authProvider.submitSellerRequest(
                                 fullName: _fullNameController.text.trim(),
                                 citizenId: _citizenIdController.text.trim(),
-                                storeName: _storeNameController.text.trim(),
+                                // storeName: _storeNameController.text.trim(), // <-- ĐÃ XÓA
                                 address: _addressController.text.trim(),
                                 frontImage: _frontImage,
                                 backImage: _backImage,
@@ -161,7 +171,6 @@ class _UpgradeSellerScreenState extends State<UpgradeSellerScreen> {
     );
   }
 
-  // Widget con: Ô nhập liệu
   Widget _buildTextField(String label, TextEditingController controller, IconData icon, {bool isNumber = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
@@ -179,7 +188,6 @@ class _UpgradeSellerScreenState extends State<UpgradeSellerScreen> {
     );
   }
 
-  // Widget con: Ô chọn ảnh
   Widget _buildImagePicker(bool isFront, String label) {
     File? imageFile = isFront ? _frontImage : _backImage;
     return GestureDetector(

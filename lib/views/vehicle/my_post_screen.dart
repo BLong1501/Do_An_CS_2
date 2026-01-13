@@ -19,6 +19,7 @@ class MyPostsScreen extends StatelessWidget {
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
           elevation: 0,
+          
           // 1. THANH TAB BAR Ở TRÊN CÙNG
           bottom: const TabBar(
             labelColor: Colors.purple, // Màu chữ khi chọn

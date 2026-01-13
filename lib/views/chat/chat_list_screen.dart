@@ -20,11 +20,24 @@
         appBar: AppBar(
           title: const Text(
             "Tin nhắn",
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+            style: TextStyle(color: Color.fromARGB(255, 255, 254, 254), fontWeight: FontWeight.bold),
           ),
           backgroundColor: Colors.white,
           elevation: 1,
           centerTitle: true,
+          flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF5D3FD3), // tím
+                Color(0xFFC51162), // hồng đậm
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      
         ),
         // 1. Lắng nghe dữ liệu từ collection 'chat_rooms'
         body: StreamBuilder<QuerySnapshot>(

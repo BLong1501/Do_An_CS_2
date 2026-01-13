@@ -5,8 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:my_app/models/notification_model.dart';
 import 'package:my_app/models/vehicle_model.dart';
 import 'package:my_app/services/notification_service.dart';
+import 'package:my_app/views/profile/seller_result_screen.dart';
 import 'package:my_app/views/vehicle/vehicle_detail_screen.dart';
-
+import 'package:my_app/views/profile/seller_result_screen.dart';
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
 
@@ -101,13 +102,38 @@ class NotificationScreen extends StatelessWidget {
   }
 
   // Hàm xử lý khi ấn vào thông báo
+ // Hàm xử lý khi ấn vào thông báo
   void _handleNavigation(BuildContext context, NotificationModel notif) async {
     
-    // TRƯỜNG HỢP 1: Thông báo tin được duyệt (approved)
-    // Hoặc thông báo Follower (new_post_following)
+    // --- 1. XỬ LÝ NÂNG CẤP SELLER (MỚI THÊM) ---
+    
+    // Nếu được duyệt làm Seller -> Mở màn hình Chúc mừng
+    if (notif.type == 'seller_approved') {
+      Navigator.push(
+        context, 
+        MaterialPageRoute(builder: (_) => const SellerSuccessScreen())
+      );
+      return; // Dừng hàm, không chạy các đoạn dưới nữa
+    }
+
+    // Nếu bị từ chối làm Seller -> Mở màn hình Thất bại
+    if (notif.type == 'seller_rejected') {
+      Navigator.push(
+        context, 
+        MaterialPageRoute(
+          // Truyền nội dung body của thông báo (lý do từ chối) sang màn hình đỏ
+          builder: (_) => SellerRejectionScreen(reason: notif.body)
+        )
+      );
+      return;
+    }
+
+    // --- 2. XỬ LÝ DUYỆT XE / FOLLOW (GIỮ NGUYÊN CODE CŨ) ---
+
+    // Trường hợp: Tin đăng xe được duyệt HOẶC Người mình follow đăng bài mới
     if ((notif.type == 'approved' || notif.type == 'new_post_following') && notif.relatedId != null) {
       
-      // 1. Hiển thị vòng quay loading để người dùng biết đang tải
+      // Hiển thị loading
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -115,31 +141,22 @@ class NotificationScreen extends StatelessWidget {
       );
 
       try {
-        // 2. Lấy dữ liệu xe từ Firebase dựa trên relatedId
         DocumentSnapshot doc = await FirebaseFirestore.instance
             .collection('vehicles')
             .doc(notif.relatedId)
             .get();
 
-        // Tắt vòng quay loading
-        if (context.mounted) Navigator.pop(context);
+        if (context.mounted) Navigator.pop(context); // Tắt loading
 
         if (doc.exists) {
-          // 3. Chuyển đổi dữ liệu sang VehicleModel
-          // (Đảm bảo bạn có hàm fromSnapshot hoặc fromMap trong VehicleModel)
           VehicleModel vehicle = VehicleModel.fromSnapshot(doc);
-
-          // 4. Mở màn hình chi tiết
           if (context.mounted) {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => VehicleDetailScreen(vehicle: vehicle),
-              ),
+              MaterialPageRoute(builder: (_) => VehicleDetailScreen(vehicle: vehicle)),
             );
           }
         } else {
-          // Trường hợp xe đã bị xóa sau khi duyệt
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Bài đăng này không còn tồn tại!")),
@@ -147,25 +164,25 @@ class NotificationScreen extends StatelessWidget {
           }
         }
       } catch (e) {
-        // Tắt loading nếu lỗi
         if (context.mounted) Navigator.pop(context);
         print("Lỗi tải xe: $e");
       }
     } 
     
-    // TRƯỜNG HỢP 2: Thông báo bị từ chối hoặc vi phạm
+    // --- 3. XỬ LÝ CÁC LOẠI KHÁC ---
+    
+    // Thông báo xe bị từ chối hoặc vi phạm
     else if (notif.type == 'rejected' || notif.type == 'violation_removed') {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
           title: Text(notif.title),
-          content: Text(notif.body), // Hiển thị lý do từ chối
+          content: Text(notif.body),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: const Text("Đã hiểu"),
             ),
-            // Có thể thêm nút "Sửa lại bài" nếu muốn (Logic phức tạp hơn chút)
           ],
         ),
       );

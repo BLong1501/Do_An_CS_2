@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart'  ;
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+// import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // 👇 Import Provider
 import '../../providers/auth_provider.dart'; // 👇 Import AuthProvider

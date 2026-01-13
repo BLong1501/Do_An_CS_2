@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:my_app/views/vehicle/vehicle_detail_screen.dart';
 import '../../models/vehicle_model.dart';
-import '../widgets/vehicle_card.dart';
+// import '../widgets/vehicle_card.dart';
 
 class LocationResultScreen extends StatelessWidget {
   final String location;

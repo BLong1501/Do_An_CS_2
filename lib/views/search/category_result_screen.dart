@@ -4,7 +4,7 @@ import 'package:my_app/views/vehicle/vehicle_detail_screen.dart';
 import 'package:provider/provider.dart';
 import '../../models/vehicle_model.dart';
 import '../../providers/vehicle_provider.dart';
-import '../widgets/vehicle_card.dart';
+// import '../widgets/vehicle_card.dart';
 
 class CategoryResultScreen extends StatefulWidget {
   final String category; // VD: "Xe máy", "Ô tô"

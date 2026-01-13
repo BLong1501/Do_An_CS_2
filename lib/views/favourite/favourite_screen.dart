@@ -21,7 +21,20 @@ class FavoriteScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Tin đã lưu", style: TextStyle(color: Colors.black)),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF5D3FD3), // tím
+                Color(0xFFC51162), // hồng đậm
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+           
+        title: const Text("Tin đã lưu", style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
         backgroundColor: Colors.white,
         elevation: 1,
         iconTheme: const IconThemeData(color: Colors.black),

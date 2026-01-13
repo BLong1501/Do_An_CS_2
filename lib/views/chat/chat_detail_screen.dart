@@ -95,6 +95,19 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF5D3FD3), // tím
+                Color(0xFFC51162), // hồng đậm
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      
       ),
       body: Column(
         children: [

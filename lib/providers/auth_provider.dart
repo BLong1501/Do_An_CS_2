@@ -192,7 +192,7 @@ class AuthProvider extends ChangeNotifier {
     required String fullName,
     required String citizenId, // Số CCCD
     required String address,
-    required String storeName,
+    // required String storeName,
     required File? frontImage, // Ảnh mặt trước
     required File? backImage,  // Ảnh mặt sau
   }) async {
@@ -228,7 +228,7 @@ class AuthProvider extends ChangeNotifier {
         'fullName': fullName,
         'citizenId': citizenId,
         'address': address,
-        'storeName': storeName,
+        // 'storeName': storeName,
         'frontIdUrl': frontUrl,
         'backIdUrl': backUrl,
         'status': 'pending', // Trạng thái chờ duyệt

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:my_app/views/vehicle/vehicle_detail_screen.dart';
 import '../../models/vehicle_model.dart';
 import '../widgets/vehicle_card.dart';
 
@@ -120,7 +121,20 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
+         flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF5D3FD3), // tím
+                Color(0xFFC51162), // hồng đậm
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
+      
       body: Column(
         children: [
           // 1. DANH SÁCH SẢN PHẨM
@@ -144,6 +158,11 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                           return VehicleCard(
                               vehicle: vehicle, 
                               onTap: () {
+                                Navigator.push(context,
+                                  MaterialPageRoute(
+                                    builder: (_)=>VehicleDetailScreen(vehicle: vehicle),
+                                  )
+                                );
                                 // Navigator to detail
                               }
                           );

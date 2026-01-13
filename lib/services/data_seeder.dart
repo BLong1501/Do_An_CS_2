@@ -32,7 +32,7 @@ class DataSeeder {
 
   final List<String> locations = [
     'Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Nghệ An', 'Thanh Hóa', 'Huế',
-    'Bình Dương', 'Đồng Nai', 'Quảng Ninh' // Thêm vài tỉnh hay mua bán xe
+    'Bình Dương', 'Đồng Nai', 'Quảng Ninh', 'Toàn quốc' // Thêm vài tỉnh hay mua bán xe
   ];
 
   // --- 3. CÁC MỤC MỚI BỔ SUNG ---

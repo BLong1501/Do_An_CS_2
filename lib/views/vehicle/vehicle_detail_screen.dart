@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:my_app/views/profile/public_profile_screen.dart';
 import '../../models/vehicle_model.dart';
 
 class VehicleDetailScreen extends StatelessWidget {
@@ -11,7 +12,7 @@ class VehicleDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Xác định tên người bán/shop
-    final sellerName = vehicle.storeName ?? "Người bán cá nhân";
+    
     final bool isStore = vehicle.storeName != null;
 
     return Scaffold(
@@ -125,91 +126,121 @@ class VehicleDetailScreen extends StatelessWidget {
                   const Divider(height: 30),
 
                   // 5. THÔNG TIN NGƯỜI ĐĂNG (Dùng FutureBuilder để lấy Avatar mới nhất)
+                  // ... inside VehicleDetailScreen.dart
+
+                  // 5. THÔNG TIN NGƯỜI ĐĂNG
+                 // 5. THÔNG TIN NGƯỜI ĐĂNG
                   FutureBuilder<DocumentSnapshot>(
                     future: FirebaseFirestore.instance
                         .collection('users')
                         .doc(vehicle.ownerId)
                         .get(),
                     builder: (context, snapshot) {
-                      // Mặc định (khi đang tải hoặc lỗi)
-                      String displayStoreName = vehicle.storeName ?? "Người bán cá nhân";
+                      // 1. Khởi tạo giá trị mặc định
+                      String sellerName = vehicle.storeName ?? "Đang tải...";
                       String? displayAvaUrl;
                       
-                      // Khi đã tải xong dữ liệu User
+                      // 2. Nếu đã tải xong dữ liệu từ Firestore
                       if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
                         final userData = snapshot.data!.data() as Map<String, dynamic>;
-                        // Nếu là shop thì ưu tiên lấy avatar shop, nếu không có thì lấy ảnh null
+                        
                         if (isStore) {
+                           // --- LOGIC CỬA HÀNG ---
                            displayAvaUrl = userData['storeAva'];
-                           // Cập nhật lại tên shop từ user profile cho chắc chắn
                            if (userData['storeName'] != null) {
-                             displayStoreName = userData['storeName'];
+                             sellerName = userData['storeName'];
                            }
+                        } else {
+                           // --- LOGIC CÁ NHÂN (SỬA Ở ĐÂY) ---
+                           displayAvaUrl = userData['photoUrl'];
+                           // 👇 Lấy tên hiển thị thật (displayName), nếu lỗi thì mới hiện "Người dùng"
+                           sellerName = userData['displayName'] ?? "Người dùng";
                         }
                       }
 
-                      return Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey[200]!),
-                        ),
-                        child: Row(
-                          children: [
-                            // 👇 AVATAR LOGIC
-                            CircleAvatar(
-                              radius: 25,
-                              backgroundColor: isStore ? Colors.purple[100] : Colors.blue[100],
-                              backgroundImage: displayAvaUrl != null 
-                                  ? NetworkImage(displayAvaUrl) 
-                                  : null,
-                              child: displayAvaUrl == null 
-                                  ? Icon(
-                                      isStore ? Icons.store : Icons.person,
-                                      color: isStore ? Colors.purple : Colors.blue,
-                                      size: 30,
-                                    )
-                                  : null,
-                            ),
-                            
-                            const SizedBox(width: 15),
-                            
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    displayStoreName,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold, fontSize: 16),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  if (isStore)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.purple,
-                                        borderRadius: BorderRadius.circular(4)
-                                      ),
-                                      child: const Text("Cửa hàng uy tín", style: TextStyle(color: Colors.white, fontSize: 10)),
-                                    )
-                                  else
-                                    const Text("Người bán cá nhân", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                                ],
+                      // 3. Giao diện hiển thị
+                      return GestureDetector(
+                        onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PublicProfileScreen(userId: vehicle.ownerId),
                               ),
-                            ),
-                            
-                            // Nút Gọi
-                            IconButton(
-                              onPressed: () { /* Logic gọi */ },
-                              icon: const CircleAvatar(
-                                backgroundColor: Colors.green,
-                                radius: 18,
-                                child: Icon(Icons.phone, color: Colors.white, size: 18),
+                            );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[200]!),
+                          ),
+                          child: Row(
+                            children: [
+                              // Avatar
+                              CircleAvatar(
+                                radius: 25,
+                                backgroundColor: isStore ? Colors.purple[100] : Colors.blue[100],
+                                backgroundImage: displayAvaUrl != null 
+                                    ? NetworkImage(displayAvaUrl) 
+                                    : null,
+                                child: displayAvaUrl == null 
+                                    ? Icon(
+                                        isStore ? Icons.store : Icons.person,
+                                        color: isStore ? Colors.purple : Colors.blue,
+                                        size: 30,
+                                      )
+                                    : null,
                               ),
-                            ),
-                          ],
+                              
+                              const SizedBox(width: 15),
+                              
+                              // Thông tin Text
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // 👇 HIỂN THỊ TÊN NGƯỜI BÁN / TÊN SHOP
+                                    Text(
+                                      sellerName,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold, fontSize: 16),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    
+                                    // 👇 LOGIC HIỂN THỊ BADGE HOẶC CHÚ THÍCH
+                                    if (isStore)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.purple,
+                                          borderRadius: BorderRadius.circular(4)
+                                        ),
+                                        child: const Text("Cửa hàng uy tín", style: TextStyle(color: Colors.white, fontSize: 10)),
+                                      )
+                                    else
+                                      // 👇 HIỆN DÒNG BẠN MUỐN: "Người bán cá nhân"
+                                      const Text(
+                                        "Người bán cá nhân", 
+                                        style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic)
+                                      ), 
+                                  ],
+                                ),
+                              ),
+                              
+                              // Nút Gọi
+                               IconButton(
+                                onPressed: () { /* Logic gọi */ },
+                                icon: const CircleAvatar(
+                                  backgroundColor: Colors.green,
+                                  radius: 18,
+                                  child: Icon(Icons.phone, color: Colors.white, size: 18),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -281,3 +312,5 @@ class VehicleDetailScreen extends StatelessWidget {
     return "Vừa xong";
   }
 }
+
+// tôi muốn làm thêm cái khi ấn vào nơi thông tin về ngườ bán ở vehicle_detail_screen sẽ hiện ra trang thông tin các nhân của người bán hoặc cửa hàng và có cả nút follow khi ấn vào nút follow thì người follow sẽ hiện trong danh sách người follow ở trang store_followers_screen đối với cửa hàng và tran

@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart' ;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:my_app/views/profile/update_seller_screen.dart';
+import 'package:my_app/views/profile/user_follow_list_screen.dart';
 import 'package:my_app/views/seller/seller_info_screen.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart' ;
@@ -112,7 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final userModel = authProvider.user;
@@ -121,202 +122,247 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text("Hồ sơ cá nhân", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_note, color: Colors.black),
-            onPressed: () => _showEditNameDialog(context, userModel.displayName),
-          )
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
+      body: CustomScrollView(
+        // 👇 DÙNG CUSTOM SCROLL VIEW ĐỂ CÓ HIỆU ỨNG TRƯỢT APPBAR
+        slivers: [
+          SliverAppBar(
+            title: const Text("Hồ sơ cá nhân", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            centerTitle: true,
             
-            // --- 1. AVATAR & TÊN ---
-            Center(
-              child: Column(
-                children: [
-                  // Stack để chồng icon máy ảnh lên avatar
-                  Stack(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.purple.withOpacity(0.2), width: 3),
-                        ),
-                        child: CircleAvatar(
-                          radius: 50,
-                          backgroundColor: Colors.grey[300],
-                          backgroundImage: (userModel.photoUrl != null && userModel.photoUrl!.isNotEmpty)
-                              ? NetworkImage(userModel.photoUrl!)
-                              : null,
-                          child: (userModel.photoUrl == null || userModel.photoUrl!.isEmpty)
-                              ? const Icon(Icons.person, size: 50, color: Colors.white)
-                              : null,
-                        ),
-                      ),
-                      // Nút đổi ảnh
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: InkWell(
-                          onTap: _isUploading ? null : _pickAndUploadAvatar,
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: const BoxDecoration(
-                              color: Colors.purple,
-                              shape: BoxShape.circle,
-                            ),
-                            child: _isUploading 
-                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Icon(Icons.camera_alt, color: Colors.white, size: 16),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    userModel.displayName,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    userModel.email,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // --- 2. THỐNG KÊ FOLLOW (Mới thêm) ---
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildStatItem("Đang theo dõi", userModel.following),
-                  Container(height: 30, width: 1, color: Colors.grey[300]), // Đường kẻ dọc
-                  _buildStatItem("Người theo dõi", userModel.followers),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-            const Divider(thickness: 5, color: Color(0xFFF5F5F5)), // Kẻ ngang phân cách lớn
-
-            // --- 3. MENU CHỨC NĂNG ---
-            _buildSectionTitle("Cài đặt & Tiện ích"),
+            // 👇 CẤU HÌNH HIỆU ỨNG TRƯỢT
+            floating: true, // Vuốt nhẹ lên là hiện lại ngay
+            snap: true,     // Hiện dứt khoát
+            pinned: false,  // false: Trượt mất hẳn | true: Giữ lại thanh bar dính trên cùng
             
-            _buildMenuItem(
-              icon: Icons.settings_outlined, 
-              title: "Cài đặt tài khoản", 
-              onTap: () {
-                // Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
-              }
-            ),
+            expandedHeight: 60.0, // Chiều cao mở rộng (nếu muốn làm ảnh nền to thì tăng lên)
+            backgroundColor: Colors.transparent, // Để lộ gradient bên dưới
+            elevation: 4,
+            automaticallyImplyLeading: false,
             
-            _buildMenuItem(
-              icon: userModel.role.name == 'seller' ? Icons.storefront : Icons.add_business,
-              title: userModel.role.name == 'seller' ? 'Thông tin người bán':'Đăng ký bán hàng',
-              onTap: (){
-                if(userModel.role.name == 'seller'){
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SellerInfoScreen()));
+            // Nút Edit tên
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.edit_note, color: Colors.white),
+                onPressed: () => _showEditNameDialog(context, userModel.displayName),
+              )
+            ],
 
-                  }else{
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const UpgradeSellerScreen())
-                    );
-
-                  }
-                }
-              ),
-
-            _buildMenuItem(
-              icon: Icons.history, 
-              title: "Lịch sử đăng nhập", 
-              onTap: () {
-                // Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginHistoryScreen()));
-              }
-            ),
-
-            _buildSectionTitle("Hỗ trợ"),
-
-             _buildMenuItem(
-              icon: Icons.feedback_outlined, 
-              title: "Đóng góp ý kiến", 
-              onTap: () {
-                // Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackScreen()));
-              }
-            ),
-            
-            _buildMenuItem(
-              icon: Icons.help_outline, 
-              title: "Trợ giúp & Hỗ trợ", 
-              onTap: () {
-                 // Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpScreen()));
-              }
-            ),
-
-            const SizedBox(height: 10),
-            
-            // Nút Đăng xuất
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    await Provider.of<AuthProvider>(context, listen: false).logout();
-                    if (context.mounted) {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
-                        (route) => false,
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.logout, color: Colors.white),
-                  label: const Text("Đăng xuất", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[400],
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
+            // Màu nền Gradient
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF5D3FD3), Color(0xFFC51162)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
               ),
             ),
-             const SizedBox(height: 20),
-          ],
-        ),
+          ),
+
+          // 👇 NỘI DUNG CHÍNH CỦA TRANG PROFILE
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
+                
+                // --- 1. AVATAR & TÊN ---
+                Center(
+                  child: Column(
+                    children: [
+                      // Stack Avatar
+                      Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.purple.withOpacity(0.2), width: 3),
+                            ),
+                            child: CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.grey[300],
+                              backgroundImage: (userModel.photoUrl != null && userModel.photoUrl!.isNotEmpty)
+                                  ? NetworkImage(userModel.photoUrl!)
+                                  : null,
+                              child: (userModel.photoUrl == null || userModel.photoUrl!.isEmpty)
+                                  ? const Icon(Icons.person, size: 50, color: Colors.white)
+                                  : null,
+                            ),
+                          ),
+                          // Nút Camera nhỏ
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: InkWell(
+                              onTap: _isUploading ? null : _pickAndUploadAvatar,
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: Colors.purple,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: _isUploading 
+                                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                    : const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        userModel.displayName,
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        userModel.email,
+                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // --- 2. THỐNG KÊ FOLLOW ---
+                // --- 2. THỐNG KÊ FOLLOW ---
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      // Nút "Đang theo dõi" (Following) -> Tab Index 0
+                      _buildStatItem("Đang theo dõi", userModel.following, () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => UserFollowListScreen(
+                              userId: userModel.uid, 
+                              initialTabIndex: 0
+                            )
+                          )
+                        );
+                      }),
+                      
+                      Container(height: 30, width: 1, color: Colors.grey[300]),
+                      
+                      // Nút "Người theo dõi" (Followers) -> Tab Index 1
+                      _buildStatItem("Người theo dõi", userModel.followers, () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => UserFollowListScreen(
+                              userId: userModel.uid, 
+                              initialTabIndex: 1
+                            )
+                          )
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+                const Divider(thickness: 5, color: Color(0xFFF5F5F5)),
+
+                // --- 3. MENU CHỨC NĂNG ---
+                _buildSectionTitle("Cài đặt & Tiện ích"),
+                
+                _buildMenuItem(
+                  icon: Icons.settings_outlined, 
+                  title: "Cài đặt tài khoản", 
+                  onTap: () { /* ... */ }
+                ),
+                
+                _buildMenuItem(
+                  icon: userModel.role.name == 'seller' ? Icons.storefront : Icons.add_business,
+                  title: userModel.role.name == 'seller' ? 'Thông tin người bán':'Đăng ký bán hàng',
+                  onTap: (){
+                    if(userModel.role.name == 'seller'){
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const SellerInfoScreen()));
+                    } else {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const UpgradeSellerScreen()));
+                    }
+                  }
+                ),
+
+                _buildMenuItem(
+                  icon: Icons.history, 
+                  title: "Lịch sử đăng nhập", 
+                  onTap: () { /* ... */ }
+                ),
+
+                _buildSectionTitle("Hỗ trợ"),
+
+                 _buildMenuItem(
+                  icon: Icons.feedback_outlined, 
+                  title: "Đóng góp ý kiến", 
+                  onTap: () { /* ... */ }
+                ),
+                
+                _buildMenuItem(
+                  icon: Icons.help_outline, 
+                  title: "Trợ giúp & Hỗ trợ", 
+                  onTap: () { /* ... */ }
+                ),
+
+                const SizedBox(height: 10),
+                
+                // Nút Đăng xuất
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await Provider.of<AuthProvider>(context, listen: false).logout();
+                        if (context.mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (_) => const LoginScreen()),
+                            (route) => false,
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.logout, color: Colors.white),
+                      label: const Text("Đăng xuất", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 122, 40, 199),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                ),
+                 const SizedBox(height: 50), // Khoảng trống cuối cùng để cuộn thoải mái
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   // Widget hiển thị số liệu Follow
-  Widget _buildStatItem(String label, int count) {
-    return Column(
-      children: [
-        Text(
-          "$count",
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+  // 👇 SỬA HÀM NÀY: Thêm tham số onTap
+  Widget _buildStatItem(String label, int count, VoidCallback onTap) {
+    return InkWell( // Bọc bằng InkWell để có hiệu ứng gợn sóng khi ấn
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Tăng vùng bấm cho dễ
+        child: Column(
+          children: [
+            Text(
+              "$count",
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-        ),
-      ],
+      ),
     );
   }
 

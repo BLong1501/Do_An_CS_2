@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+// import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import '../../providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -542,7 +542,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
         // Thông báo rõ ràng cho người dùng biết
         String message = widget.isStorePost 
             ? "Đã đăng tin dưới tên Cửa hàng: $finalStoreName"
-            : "Đã đăng tin Cá nhân thành công!";
+            : "Đã gửi yêu cầu đăng tin !";
             
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message), backgroundColor: Colors.green),

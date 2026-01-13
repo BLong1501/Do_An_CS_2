@@ -2,10 +2,9 @@ enum UserRole { user, seller, admin }
 
 class UserModel {
   final String uid;
-  final String email; // Dùng để đăng nhập (Gmail)
-  final String displayName; // Tên đầy đủ (Lấy từ Google, VD: Nguyễn Văn A)
-  final String? username; // [MỚI] Biệt danh/Tên người dùng (VD: nguyenvana99)
-
+  final String email;
+  final String displayName;
+  final String? username;
   final String? phoneNumber;
   final String? photoUrl;
   final UserRole role;
@@ -15,18 +14,23 @@ class UserModel {
   final List<String> favoritePostIds;
   final DateTime createdAt;
   final DateTime? lastLoginAt;
-  // 👇 [MỚI 1] THÊM 2 BIẾN ĐẾM
-  final int followers; // Số người đang theo dõi mình
-  final int following; // Số người mình đang theo dõi
-  final String? storeName;   // Tên cửa hàng (Nếu có dữ liệu này => Đã tạo shop)
-  final String? taxCode;     // Mã số thuế
-  final String? description; // Mô tả cửa hàng
+
+  // Chỉ số cá nhân
+  final int followers; // Follow cá nhân (bạn bè)
+  final int following;
+
+  // 👇 [THÔNG TIN CỬA HÀNG]
+  final String? storeName;
+  final String? taxCode;
+  final String? description;
   final String? storeAva;
+  final int storeFollowers; // 👈 [MỚI] Số người theo dõi cửa hàng
+
   UserModel({
     required this.uid,
     required this.email,
     required this.displayName,
-    this.username, // Thêm vào đây (có thể null nếu user chưa đặt)
+    this.username,
     this.phoneNumber,
     this.photoUrl,
     this.role = UserRole.user,
@@ -41,14 +45,15 @@ class UserModel {
     this.storeName,
     this.taxCode,
     this.description,
-    this.storeAva
+    this.storeAva,
+    this.storeFollowers = 0, // 👈 [MỚI] Mặc định là 0
   });
 
   // Lưu lên Firestore
   Map<String, dynamic> toMap() => {
     'email': email,
     'displayName': displayName,
-    'username': username, // Lưu biệt danh lên server
+    'username': username,
     'phoneNumber': phoneNumber,
     'photoUrl': photoUrl,
     'role': role.name,
@@ -60,20 +65,22 @@ class UserModel {
     'lastLoginAt': lastLoginAt?.toIso8601String(),
     'followers': followers,
     'following': following,
+    
+    // Các trường của Shop
     'storeName': storeName,
-        'taxCode': taxCode,
-        'description': description,
-        'storeAva': storeAva, 
+    'taxCode': taxCode,
+    'description': description,
+    'storeAva': storeAva,
+    'storeFollowers': storeFollowers, // 👈 [MỚI] Lưu lên DB
   };
 
-  // Đọc về App
+  // Đọc từ Firestore về App
   factory UserModel.fromMap(Map<String, dynamic> data, String id) {
     return UserModel(
       uid: id,
       email: data['email'] ?? '',
       displayName: data['displayName'] ?? '',
-
-      username: data['username'], // Đọc biệt danh về
+      username: data['username'],
       phoneNumber: data['phoneNumber'],
       photoUrl: data['photoUrl'],
       role: UserRole.values.firstWhere(
@@ -92,13 +99,17 @@ class UserModel {
           : null,
       followers: data['followers'] ?? 0,
       following: data['following'] ?? 0,
+      
+      // Đọc thông tin Shop
       storeName: data['storeName'],
       taxCode: data['taxCode'],
       description: data['description'],
       storeAva: data['storeAva'],
+      storeFollowers: data['storeFollowers'] ?? 0, // 👈 [MỚI] Đọc về (có default)
     );
   }
-  // 👇 THÊM HÀM NÀY VÀO CUỐI CLASS USERMODEL
+
+  // Hàm copyWith (Hỗ trợ cập nhật nhanh)
   UserModel copyWith({
     String? uid,
     String? email,
@@ -119,6 +130,7 @@ class UserModel {
     String? taxCode,
     String? description,
     String? storeAva,
+    int? storeFollowers, // 👈 [MỚI] Thêm tham số
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -136,11 +148,13 @@ class UserModel {
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       followers: followers ?? this.followers,
       following: following ?? this.following,
-      // Các trường Store
+      
+      // Update Shop Info
       storeName: storeName ?? this.storeName,
       taxCode: taxCode ?? this.taxCode,
       description: description ?? this.description,
       storeAva: storeAva ?? this.storeAva,
+      storeFollowers: storeFollowers ?? this.storeFollowers, // 👈 [MỚI] Update giá trị
     );
   }
 }

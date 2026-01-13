@@ -2,8 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:my_app/providers/chat_provider.dart';
+import 'package:my_app/views/chat/chat_detail_screen.dart';
 import 'package:my_app/views/profile/public_profile_screen.dart';
 import 'package:my_app/views/vehicle/add_vehicle_screen.dart';
+import 'package:provider/provider.dart';
 import '../../models/vehicle_model.dart';
 
 class VehicleDetailScreen extends StatelessWidget {
@@ -352,8 +355,47 @@ class VehicleDetailScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-          onPressed: () {
-            /* Contact Logic */
+          onPressed: () { 
+             // 1. Kiểm tra đăng nhập
+             if (currentUserId == null) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng đăng nhập để chat!")));
+                return;
+             }
+             
+             // 2. Không cho tự chat với chính mình
+             if (isOwner) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Đây là bài đăng của bạn!")));
+                return;
+             }
+
+             // 3. Tạo ID phòng chat
+             // Logic: buyerID_sellerID_vehicleID
+             final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+             final chatRoomId = chatProvider.getChatRoomId(currentUserId, vehicle.ownerId, vehicle.id);
+
+             // 4. Lấy tên người bán (Bạn có thể lấy từ FutureBuilder ở trên hoặc truyền tạm tên User)
+             // Ở đây mình ví dụ lấy tạm tên Store nếu có, hoặc "Người bán"
+             String sellerDisplayName = "Người bán";
+             if (vehicle.storeName != null && vehicle.storeName!.isNotEmpty) {
+                sellerDisplayName = vehicle.storeName!;
+             }
+
+             // 5. Chuyển sang màn hình Chat
+            // 5. Chuyển sang màn hình Chat
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChatDetailScreen(
+                    chatRoomId: chatRoomId,
+                    receiverId: vehicle.ownerId,
+                    receiverName: sellerDisplayName,
+                    // --- TRUYỀN THÊM CÁC DỮ LIỆU NÀY ---
+                    vehicleId: vehicle.id,     // Để lưu vào DB
+                    vehicleTitle: vehicle.title, // Để hiện tên xe trong danh sách chat
+                    receiverAvatar: null, // Nếu ChatDetail cần hiển thị avatar
+                  ),
+                ),
+              );
           },
           child: const Text(
             "LIÊN HỆ NGAY",

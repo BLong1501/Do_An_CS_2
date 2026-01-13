@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/views/chat/chat_list_screen.dart';
 import 'package:my_app/views/profile/profile_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:my_app/providers/auth_provider.dart';
@@ -28,7 +29,7 @@ class _MainScreenState extends State<MainScreen> {
   // Lưu ý: Sẽ xử lý logic hiển thị theo role ở hàm build
   final List<Widget> _pages = [
     const HomeScreen(),      // Index 0: Trang chủ (Sửa lại HomeScreen cũ bỏ BottomBar đi)
-    const Center(child: Text("Tin nhắn")), // Index 1: Tin nhắn (Thay bằng ChatListScreen sau này)
+    const ChatListScreen(), // Index 1: Tin nhắn (Thay bằng ChatListScreen sau này)
     const MyPostsScreen(),   // Index 2: Tin của tôi (Chỉ hiện cho Seller)
     const FavoriteScreen(),  // Index 3: Yêu thích
     const ProfileScreen(), // Index 4: Tài khoản (Thay bằng ProfileScreen sau này)
@@ -49,16 +50,18 @@ class _MainScreenState extends State<MainScreen> {
         final user = auth.user;
         final bool isSeller = user != null && (user.role == UserRole.seller || user.role == UserRole.admin);
 
+        // Logic kiểm tra để hiện nút: Phải là Seller VÀ đang ở tab Trang chủ (index 0)
+        final bool showFab = isSeller && _currentIndex == 0;
+
         return Scaffold(
           // Hiển thị nội dung trang theo index
-          // Dùng IndexedStack để giữ trạng thái của các trang (không bị load lại khi chuyển tab)
           body: IndexedStack(
             index: _currentIndex,
             children: _pages,
           ),
 
-          // NÚT ĐĂNG TIN (FAB)
-          floatingActionButton: isSeller
+          // NÚT ĐĂNG TIN (FAB) - Đã sửa logic hiển thị
+          floatingActionButton: showFab
               ? SizedBox(
                   height: 65, width: 65,
                   child: FloatingActionButton(
@@ -66,16 +69,16 @@ class _MainScreenState extends State<MainScreen> {
                     elevation: 5,
                     shape: const CircleBorder(),
                     onPressed: () {
-                      // Đăng tin vẫn là một hành động mở màn hình mới, nên dùng push
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const AddVehicleScreen()));
                     },
                     child: const Icon(Icons.add, color: Colors.white, size: 30),
                   ),
                 )
-              : null,
+              : null, // Nếu không phải trang chủ hoặc không phải seller thì ẩn nút
+          
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
 
-          // THANH BOTTOM BAR
+          // THANH BOTTOM BAR (Giữ nguyên)
           bottomNavigationBar: BottomAppBar(
             elevation: 10,
             color: Colors.white,
@@ -85,21 +88,12 @@ class _MainScreenState extends State<MainScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  // 0. TRANG CHỦ
                   _buildBottomItem(Icons.home, "Trang chủ", 0),
-
-                  // 1. TIN NHẮN
                   _buildBottomItem(Icons.chat_bubble_outline, "Tin nhắn", 1),
-
-                  // 2. TIN CỦA TÔI (Chỉ Seller)
                   if (isSeller)
                     _buildBottomItem(Icons.assignment_outlined, "Tin của tôi", 2),
-
-                  // 3. YÊU THÍCH
                   _buildBottomItem(Icons.favorite_border, "Yêu thích", 3),
-
-                  // 4. TÀI KHOẢN
-                  _buildBottomItem(Icons.person_outline, "Tài khoản", 4, isLogout: true), // Xử lý đặc biệt cho nút Logout tạm thời
+                  _buildBottomItem(Icons.person_outline, "Tài khoản", 4, isLogout: true),
                 ],
               ),
             ),

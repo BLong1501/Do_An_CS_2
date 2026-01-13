@@ -17,13 +17,12 @@ class VehicleModel {
   final DateTime createdAt;
   final String status;
 
-  // --- 1. THÊM CÁC TRƯỜNG MỚI TẠI ĐÂY ---
-  final String condition; // "Xe mới" hoặc "Đã sử dụng"
-  final String origin;    // "Nhập khẩu" hoặc "Lắp ráp trong nước"
-  final String capacity;  // Ví dụ: "150cc", "2.0L"
-  final int weight;    
-  final String? storeName;   // Đơn vị kg
-  // ---------------------------------------
+  // --- CÁC TRƯỜNG MỚI ---
+  final String condition; 
+  final String origin;    
+  final String capacity;  
+  final int weight;     
+  final String? storeName;   
   final String color;
 
   VehicleModel({
@@ -42,15 +41,15 @@ class VehicleModel {
     required this.contactPhone,
     required this.createdAt,
     required this.status,
-    // Nhớ thêm vào constructor
     required this.condition,
     required this.origin,
     required this.capacity,
     required this.weight,
     required this.color,
-    required this.storeName,
+    this.storeName, // storeName có thể null, bỏ required đi
   });
 
+  // Chuyển Object -> Map để lưu lên Firebase
   Map<String, dynamic> toMap() {
     return {
       'ownerId': ownerId,
@@ -65,9 +64,8 @@ class VehicleModel {
       'location': location,
       'images': images,
       'contactPhone': contactPhone,
-      'createdAt': createdAt,
+      'createdAt': Timestamp.fromDate(createdAt), // Đổi DateTime sang Timestamp
       'status': status,
-      // Thêm vào Map để đẩy lên Firebase
       'condition': condition,
       'origin': origin,
       'capacity': capacity,
@@ -77,6 +75,7 @@ class VehicleModel {
     };
   }
 
+  // Chuyển Map -> Object (Dùng khi bạn đã có Map sẵn)
   factory VehicleModel.fromMap(Map<String, dynamic> map, String id) {
     return VehicleModel(
       id: id,
@@ -92,15 +91,28 @@ class VehicleModel {
       location: map['location'] ?? '',
       images: List<String>.from(map['images'] ?? []),
       contactPhone: map['contactPhone'] ?? '',
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      // Kiểm tra null cho an toàn
+      createdAt: map['createdAt'] != null 
+          ? (map['createdAt'] as Timestamp).toDate() 
+          : DateTime.now(),
       status: map['status'] ?? 'pending',
-      // Lấy từ Firebase về (kèm giá trị mặc định tránh lỗi data cũ)
       condition: map['condition'] ?? 'Đã sử dụng',
       origin: map['origin'] ?? 'Lắp ráp trong nước',
       capacity: map['capacity'] ?? '',
       weight: map['weight'] ?? 0,
       color: map['color'] ?? 'Khác',
       storeName: map['storeName'],
+    );
+  }
+
+  // --- THÊM HÀM NÀY ĐỂ SỬA LỖI ---
+  // Chuyển DocumentSnapshot -> Object (Dùng trong NotificationScreen)
+  factory VehicleModel.fromSnapshot(DocumentSnapshot doc) {
+    // Gọi lại hàm fromMap ở trên cho gọn code
+    // doc.data() lấy dữ liệu, doc.id lấy ID của document
+    return VehicleModel.fromMap(
+      doc.data() as Map<String, dynamic>, 
+      doc.id
     );
   }
 }

@@ -3,8 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:my_app/models/user_model.dart';
 import 'package:my_app/providers/vehicle_provider.dart';
+import 'package:my_app/services/notification_service.dart';
 import 'package:my_app/views/auth/login_screen.dart';
 import 'package:my_app/views/favourite/favourite_screen.dart';
+import 'package:my_app/views/notification/notification_screen.dart';
 import 'package:my_app/views/profile/update_seller_screen.dart';
 import 'package:my_app/views/search/location_result_adress.dart';
 import 'package:my_app/views/search/search_screen.dart';
@@ -147,7 +149,9 @@ class _HomeScreenState extends State<HomeScreen> {
           // 1. APP BAR TÙY CHỈNH
           appBar: AppBar(
             backgroundColor: Colors.white,
-            elevation: 0,
+
+            elevation: 5,
+            shadowColor: Colors.grey.withOpacity(0.5),
             leading: IconButton(
               icon: const Icon(Icons.menu, color: Colors.black),
               onPressed: () {},
@@ -206,12 +210,54 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              IconButton(
-                icon: const Icon(
-                  Icons.notifications_outlined,
-                  color: Colors.black,
-                ),
-                onPressed: () {}, // TODO: Mở thông báo
+              StreamBuilder<int>(
+                // Gọi hàm đếm số tin chưa đọc từ Service
+                stream: NotificationService().getUnreadCount(user?.uid ?? ''),
+                builder: (context, snapshot) {
+                  int unreadCount = snapshot.data ?? 0;
+
+                  return IconButton(
+                    icon: Stack(
+                      children: [
+                        const Icon(
+                          Icons.notifications_outlined,
+                          color: Colors.black,
+                          size: 28,
+                        ),
+
+                        // Nếu có tin chưa đọc thì hiện chấm đỏ
+                        if (unreadCount > 0)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                unreadCount > 9 ? '9+' : unreadCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const NotificationScreen(),
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
             ],
           ),
@@ -533,10 +579,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         return VehicleCard(
                           vehicle: vehicle,
                           onTap: () {
-                            Navigator.push(context,
-                            MaterialPageRoute(
-                              builder: (_)=>VehicleDetailScreen(vehicle: vehicle),
-                            ));
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    VehicleDetailScreen(vehicle: vehicle),
+                              ),
+                            );
                             // Navigate to detail
                           },
                         );
@@ -646,8 +695,8 @@ class _HomeScreenState extends State<HomeScreen> {
           //           },
           //         ),
           //       ],
-              // ),
-            // ),
+          // ),
+          // ),
           // ),
         );
       },

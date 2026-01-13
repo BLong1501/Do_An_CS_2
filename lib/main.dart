@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/providers/chat_provider.dart';
 import 'package:provider/provider.dart';
 
 // Import các provider và screen
@@ -40,6 +41,7 @@ class MyApp extends StatelessWidget {
         ),
         
         ChangeNotifierProvider(create: (_) => VehicleProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

@@ -112,10 +112,20 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     // Không cần khai báo final vehicleProvider ở đây nữa vì đã dùng Consumer bên dưới
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.vehicleToEdit != null ? "Cập nhật tin" : "Đăng tin bán xe",
-        ),
+  title: Text(
+    widget.vehicleToEdit != null ? "Cập nhật tin" : "Đăng tin bán xe",
+    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+  ),
+  flexibleSpace: Container(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [Color(0xFF5D3FD3), Color(0xFFC51162)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
       ),
+    ),
+  ),
+),
       body: Consumer<VehicleProvider>(
         // 2. DÙNG CONSUMER ĐỂ LẤY DỮ LIỆU
         builder: (context, provider, child) {

@@ -2,37 +2,61 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class ChatProvider extends ChangeNotifier {
-  // 1. Tạo ID phòng chat duy nhất (nguoiMua_nguoiBan_maXe)
-  String getChatRoomId(String buyerId, String sellerId, String vehicleId) {
-    // Luôn sắp xếp ID người dùng để A chat với B giống B chat với A
-    // Nhưng ở đây ta gắn theo xe, nên ID phòng nên là:
-    return "${buyerId}_${sellerId}_$vehicleId";
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Hàm tạo ID phòng chat (giữ nguyên như cũ)
+  String getChatRoomId(String userId, String otherUserId, String vehicleId) {
+    List<String> ids = [userId, otherUserId];
+    ids.sort(); // Sắp xếp để ID luôn giống nhau dù ai là người bắt đầu
+    return "${ids[0]}_${ids[1]}_$vehicleId";
   }
 
-  // 2. Gửi tin nhắn
-  Future<void> sendMessage(String chatRoomId, String messageText, String senderId, String receiverId, String vehicleTitle) async {
-    if (messageText.trim().isEmpty) return;
+  // CẬP NHẬT HÀM GỬI TIN NHẮN QUAN TRỌNG NÀY
+  Future<void> sendMessage({
+    required String chatRoomId,
+    required String message,
+    required String senderId,
+    required String receiverId,
+    required String vehicleId, // Cần thêm cái này để biết đang chat về xe nào
+    required String vehicleTitle, // Tiêu đề xe để hiển thị ở danh sách
+    String? receiverName,
+    String? receiverAvatar,
+  }) async {
+    final Timestamp timestamp = Timestamp.now();
 
-    final timestamp = FieldValue.serverTimestamp();
+    // 1. Tạo model tin nhắn
+    Map<String, dynamic> messageData = {
+      "senderId": senderId,
+      "receiverId": receiverId,
+      "message": message,
+      "timestamp": timestamp,
+      "isRead": false,
+      "type": "text",
+    };
 
-    // A. Lưu tin nhắn vào sub-collection 'messages'
-    await FirebaseFirestore.instance
-        .collection('chats')
+    // 2. Lưu tin nhắn vào Sub-collection 'messages'
+    await _firestore
+        .collection('chat_rooms')
         .doc(chatRoomId)
         .collection('messages')
-        .add({
-      'senderId': senderId,
-      'text': messageText,
-      'createdAt': timestamp,
-    });
+        .add(messageData);
 
-    // B. Cập nhật thông tin tóm tắt ở collection 'chats' (để hiện ở danh sách tin nhắn)
-    await FirebaseFirestore.instance.collection('chats').doc(chatRoomId).set({
-      'users': [senderId, receiverId], // Danh sách người tham gia
-      'lastMessage': messageText,
-      'lastTime': timestamp,
-      'chatRoomId': chatRoomId,
-      'vehicleTitle': vehicleTitle, // Lưu tên xe để biết đang chat về xe gì
-    }, SetOptions(merge: true)); // merge: true để không ghi đè nếu đã có
+    // 3. QUAN TRỌNG: Cập nhật thông tin phòng chat (Để hiện trong ChatList)
+    // Dùng set với SetOptions(merge: true) để nếu phòng chưa có thì tạo mới, có rồi thì cập nhật
+    Map<String, dynamic> chatRoomData = {
+      "chatRoomId": chatRoomId,
+      "participants": [senderId, receiverId], // Mảng chứa ID 2 người để query
+      "lastMessage": message,
+      "lastTime": timestamp,
+      "vehicleId": vehicleId,
+      "vehicleTitle": vehicleTitle,
+      // Lưu thêm info người nhận để hiển thị nhanh nếu cần (tùy chọn)
+      "users": [senderId, receiverId] 
+    };
+
+    await _firestore
+        .collection('chat_rooms')
+        .doc(chatRoomId)
+        .set(chatRoomData, SetOptions(merge: true));
   }
 }

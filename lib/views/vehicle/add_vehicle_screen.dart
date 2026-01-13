@@ -10,7 +10,12 @@ import '../../providers/vehicle_provider.dart';
 
 class AddVehicleScreen extends StatefulWidget {
   final bool isStorePost;
-  const AddVehicleScreen({super.key,this.isStorePost = false});
+  final VehicleModel? vehicleToEdit;
+  const AddVehicleScreen({
+    super.key,
+    this.isStorePost = false,
+    this.vehicleToEdit,
+  });
 
   @override
   State<AddVehicleScreen> createState() => _AddVehicleScreenState();
@@ -49,6 +54,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   // 3. Biến quản lý danh sách ảnh đã chọn
   final List<File> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
+  List<String> _existingImages = [];
   @override
   void initState() {
     super.initState();
@@ -56,6 +62,31 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<VehicleProvider>(context, listen: false).fetchAppConfig();
     });
+    if (widget.vehicleToEdit != null) {
+      final v = widget.vehicleToEdit!;
+
+      // 1. Điền text
+      _titleController.text = v.title;
+      _priceController.text = v.price.toStringAsFixed(0); // Bỏ số lẻ .0
+      _yearController.text = v.year.toString();
+      _mileageController.text = v.mileage.toString();
+      _phoneController.text = v.contactPhone;
+      _descController.text = v.description;
+      _capacityController.text = v.capacity;
+      _weightController.text = v.weight.toString();
+
+      // 2. Điền dropdown (Gán trực tiếp)
+      _selectedCategory = v.category;
+      _selectedBrand = v.brand;
+      _selectedFuel = v.fuelType;
+      _selectedLocation = v.location;
+      _selectedColor = v.color;
+      _selectedCondition = v.condition;
+      _selectedOrigin = v.origin;
+
+      // 3. Lưu ảnh cũ
+      _existingImages = List.from(v.images);
+    }
   }
 
   // 4. Hàm chọn ảnh từ thư viện
@@ -80,7 +111,11 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   Widget build(BuildContext context) {
     // Không cần khai báo final vehicleProvider ở đây nữa vì đã dùng Consumer bên dưới
     return Scaffold(
-      appBar: AppBar(title: const Text("Đăng tin bán xe")),
+      appBar: AppBar(
+        title: Text(
+          widget.vehicleToEdit != null ? "Cập nhật tin" : "Đăng tin bán xe",
+        ),
+      ),
       body: Consumer<VehicleProvider>(
         // 2. DÙNG CONSUMER ĐỂ LẤY DỮ LIỆU
         builder: (context, provider, child) {
@@ -351,75 +386,119 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                 ),
                 const SizedBox(height: 10),
 
-                SizedBox(
+               SizedBox(
                   height: 120,
-                  child: ListView.builder(
+                  child: ListView(
                     scrollDirection: Axis.horizontal,
-                    itemCount:
-                        _selectedImages.length + 1, // +1 cho nút thêm ảnh
-                    itemBuilder: (context, index) {
-                      // Nút thêm ảnh (Luôn nằm cuối)
-                      if (index == _selectedImages.length) {
-                        return GestureDetector(
-                          onTap: _pickImages,
-                          child: Container(
-                            width: 100,
-                            margin: const EdgeInsets.only(right: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.grey),
-                            ),
-                            child: const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add_a_photo, color: Colors.grey),
-                                Text(
-                                  "Thêm ảnh",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
+                    children: [
+                      // 1. NÚT THÊM ẢNH (Luôn nằm đầu tiên)
+                      GestureDetector(
+                        onTap: _pickImages,
+                        child: Container(
+                          width: 100,
+                          margin: const EdgeInsets.only(right: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.grey),
                           ),
-                        );
-                      }
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_a_photo, color: Colors.grey),
+                              Text(
+                                "Thêm ảnh",
+                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
 
-                      // Hiển thị ảnh đã chọn
-                      return Stack(
-                        children: [
-                          Container(
-                            width: 120,
-                            margin: const EdgeInsets.only(right: 10),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              image: DecorationImage(
-                                image: FileImage(_selectedImages[index]),
-                                fit: BoxFit.cover,
+                      // 2. HIỂN THỊ ẢNH CŨ (URL TỪ FIREBASE) - Nếu đang sửa
+                      // Dùng ... (spread operator) để trải danh sách ra
+                      ..._existingImages.asMap().entries.map((entry) {
+                        int index = entry.key;
+                        String imageUrl = entry.value;
+                        
+                        return Stack(
+                          children: [
+                            Container(
+                              width: 120,
+                              margin: const EdgeInsets.only(right: 10),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.grey.shade300),
                               ),
-                            ),
-                          ),
-                          Positioned(
-                            right: 5,
-                            top: 5,
-                            child: GestureDetector(
-                              onTap: () => _removeImage(index),
-                              child: const CircleAvatar(
-                                radius: 10,
-                                backgroundColor: Colors.red,
-                                child: Icon(
-                                  Icons.close,
-                                  size: 15,
-                                  color: Colors.white,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.network(
+                                  imageUrl, // 👇 Dùng Image.network cho ảnh cũ
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (ctx, child, progress) {
+                                    if (progress == null) return child;
+                                    return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                                  },
+                                  errorBuilder: (ctx, error, stack) => const Icon(Icons.error),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      );
-                    },
+                            // Nút Xóa ảnh cũ
+                            Positioned(
+                              right: 5,
+                              top: 5,
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _existingImages.removeAt(index); // Xóa khỏi list ảnh cũ
+                                  });
+                                },
+                                child: const CircleAvatar(
+                                  radius: 10,
+                                  backgroundColor: Colors.red,
+                                  child: Icon(Icons.close, size: 15, color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
+
+                      // 3. HIỂN THỊ ẢNH MỚI (FILE TỪ ĐIỆN THOẠI)
+                      ..._selectedImages.asMap().entries.map((entry) {
+                        int index = entry.key;
+                        File imageFile = entry.value;
+
+                        return Stack(
+                          children: [
+                            Container(
+                              width: 120,
+                              margin: const EdgeInsets.only(right: 10),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                image: DecorationImage(
+                                  image: FileImage(imageFile), // 👇 Dùng FileImage cho ảnh mới
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            // Nút Xóa ảnh mới
+                            Positioned(
+                              right: 5,
+                              top: 5,
+                              child: GestureDetector(
+                                onTap: () => _removeImage(index), // Xóa khỏi list ảnh mới
+                                child: const CircleAvatar(
+                                  radius: 10,
+                                  backgroundColor: Colors.red,
+                                  child: Icon(Icons.close, size: 15, color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
+                    ],
                   ),
                 ),
                 const Divider(height: 30),
@@ -429,7 +508,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                     ? const Center(child: CircularProgressIndicator())
                     : ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
+                          backgroundColor: const Color.fromARGB(255, 170, 47, 123),
                           minimumSize: const Size.fromHeight(50),
                         ),
                         onPressed: () => _submitData(provider),
@@ -447,19 +526,20 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   }
 
   // Nhớ import ở đầu file:
-// import '../../providers/auth_provider.dart'; 
+  // import '../../providers/auth_provider.dart';
 
   void _submitData(VehicleProvider provider) async {
     if (_formKey.currentState!.validate()) {
-      // 1. Kiểm tra xem đã chọn ảnh chưa
-      if (_selectedImages.isEmpty) {
+      
+      // 1. 👇 SỬA VALIDATE ẢNH: Phải có ít nhất 1 ảnh (Cũ HOẶC Mới đều được)
+      if (_selectedImages.isEmpty && _existingImages.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Vui lòng chọn ít nhất 1 ảnh xe!")),
         );
         return;
       }
 
-      // 2. Lấy thông tin User hiện tại từ AuthProvider
+      // 2. Lấy thông tin User
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final currentUser = authProvider.user;
 
@@ -470,48 +550,48 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
         return; 
       }
 
-      // --- 👇 LOGIC QUYẾT ĐỊNH TÊN SHOP HAY CÁ NHÂN 👇 ---
+      // --- LOGIC TÊN SHOP (Giữ nguyên) ---
       String? finalStoreName;
-      
-      // widget.isStorePost là biến mình đã thêm vào widget ở bước trước
       if (widget.isStorePost) {
-        // A. Nếu đang đăng từ tab "Cửa hàng của tôi"
         if (currentUser.storeName != null && currentUser.storeName!.isNotEmpty) {
           finalStoreName = currentUser.storeName;
         } else {
-          // Trường hợp lỗi: Vào tab cửa hàng nhưng profile chưa có tên cửa hàng
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Lỗi: Bạn chưa thiết lập tên cửa hàng!")),
           );
           return;
         }
       } else {
-        // B. Nếu đăng từ "Trang chủ" -> Đăng với tư cách cá nhân
         finalStoreName = null; 
       }
-      // ----------------------------------------------------
+      // ------------------------------------
 
-      // Hiển thị thông báo đang xử lý
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Đang tải ảnh và đăng tin...")),
+        const SnackBar(content: Text("Đang xử lý dữ liệu...")),
       );
 
-      // 3. Upload ảnh lên Firebase Storage
-      List<String> imageUrls = await provider.uploadImages(_selectedImages);
+      // 3. 👇 SỬA LOGIC UPLOAD ẢNH: GỘP ẢNH CŨ VÀ MỚI
+      List<String> finalImageUrls = [..._existingImages]; // Bắt đầu bằng list ảnh cũ
 
-      if (imageUrls.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Lỗi tải ảnh, vui lòng thử lại!")),
-        );
-        return;
+      // Nếu có chọn ảnh mới thì upload và nối vào
+      if (_selectedImages.isNotEmpty) {
+        List<String> newImageUrls = await provider.uploadImages(_selectedImages);
+        if (newImageUrls.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Lỗi tải ảnh mới, vui lòng thử lại!")),
+          );
+          return;
+        }
+        finalImageUrls.addAll(newImageUrls);
       }
 
-      // 4. Tạo Model Xe (Cập nhật đúng storeName)
+      // 4. 👇 SỬA TẠO MODEL: Dùng ID cũ và Ngày tạo cũ nếu đang sửa
       final newVehicle = VehicleModel(
-        id: '', // Firestore tự sinh
+        // Nếu đang sửa thì dùng ID cũ, nếu mới thì để rỗng
+        id: widget.vehicleToEdit?.id ?? '', 
         
-        ownerId: currentUser.uid,      // ID người dùng (dù là shop hay cá nhân thì ID vẫn vậy)
-        storeName: finalStoreName,     // 👇 QUAN TRỌNG: null (cá nhân) hoặc Tên Shop (cửa hàng)
+        ownerId: currentUser.uid,
+        storeName: finalStoreName, 
 
         title: _titleController.text,
         description: _descController.text,
@@ -523,26 +603,44 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
         fuelType: _selectedFuel ?? 'Xăng',
         location: _selectedLocation!,
         color: _selectedColor!,
-        images: imageUrls, 
+        
+        images: finalImageUrls, // Dùng list ảnh đã gộp
+        
         contactPhone: _phoneController.text,
-        createdAt: DateTime.now(),
-        status: 'pending',
+        // Nếu sửa thì giữ ngày tạo cũ, nếu mới thì lấy ngày giờ hiện tại
+        createdAt: widget.vehicleToEdit?.createdAt ?? DateTime.now(),
+        
+        // Khi sửa xong, có thể giữ nguyên status cũ hoặc reset về 'pending' để duyệt lại
+        // Ở đây mình để 'pending' để an toàn (sửa giá/ảnh phải duyệt lại)
+        status: 'pending', 
+        
         condition: _selectedCondition!,
         origin: _selectedOrigin!,
         capacity: _capacityController.text,
         weight: int.tryParse(_weightController.text) ?? 0,
       );
 
-      // 5. Gửi dữ liệu đi
-      final success = await provider.uploadVehicle(newVehicle);
+      // 5. 👇 SỬA GỬI DỮ LIỆU: Phân biệt Update và Create
+      bool success;
+      
+      if (widget.vehicleToEdit != null) {
+        //  - Gọi hàm Update
+        success = await provider.updateVehicle(newVehicle);
+      } else {
+        // 
+
+// [Image of Data Creation Flow]
+//  - Gọi hàm Create
+        success = await provider.uploadVehicle(newVehicle);
+      }
       
       if (success && mounted) {
         Navigator.pop(context);
         
-        // Thông báo rõ ràng cho người dùng biết
+        String actionText = widget.vehicleToEdit != null ? "Cập nhật" : "Đăng tin";
         String message = widget.isStorePost 
-            ? "Đã đăng tin dưới tên Cửa hàng: $finalStoreName"
-            : "Đã gửi yêu cầu đăng tin !";
+            ? "Đã $actionText dưới tên Cửa hàng!"
+            : "Đã gửi yêu cầu $actionText!";
             
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message), backgroundColor: Colors.green),

@@ -12,7 +12,10 @@ import '../../providers/auth_provider.dart' ;
 import '../auth/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final bool forceIndividual; // 1. 👇 Thêm dòng này
+  const ProfileScreen({super.key,
+  this.forceIndividual = false
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -119,7 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final userModel = authProvider.user;
 
     if (userModel == null) return const Center(child: CircularProgressIndicator());
-
+    bool isStore = false;
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: CustomScrollView(
@@ -225,34 +228,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 // --- 2. THỐNG KÊ FOLLOW ---
                 // --- 2. THỐNG KÊ FOLLOW ---
+                // --- 2. THỐNG KÊ FOLLOW (CÁ NHÂN) ---
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      // Nút "Đang theo dõi" (Following) -> Tab Index 0
+                      // Đang theo dõi
                       _buildStatItem("Đang theo dõi", userModel.following, () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => UserFollowListScreen(
-                              userId: userModel.uid, 
-                              initialTabIndex: 0
-                            )
-                          )
-                        );
+                         Navigator.push(context, MaterialPageRoute(builder: (_) => UserFollowListScreen(userId: userModel.uid, initialTabIndex: 0)));
                       }),
                       
                       Container(height: 30, width: 1, color: Colors.grey[300]),
                       
-                      // Nút "Người theo dõi" (Followers) -> Tab Index 1
-                      _buildStatItem("Người theo dõi", userModel.followers, () {
+                      // 👇 SỬA LẠI: Luôn lấy userModel.followers (Follow cá nhân)
+                      _buildStatItem("Người theo dõi", userModel.followers, () { 
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => UserFollowListScreen(
                               userId: userModel.uid, 
-                              initialTabIndex: 1
+                              initialTabIndex: 1 // Tab người theo dõi
                             )
                           )
                         );

@@ -8,8 +8,9 @@ import '../vehicle/vehicle_detail_screen.dart';
 
 class PublicProfileScreen extends StatefulWidget {
   final String userId; 
+  final bool forceIndividual;
 
-  const PublicProfileScreen({super.key, required this.userId});
+  const PublicProfileScreen({super.key, required this.userId, this.forceIndividual = false});
 
   @override
   State<PublicProfileScreen> createState() => _PublicProfileScreenState();
@@ -38,13 +39,20 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
       if (doc.exists) {
         final user = UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
         
-        // Kiểm tra xem là Shop hay Cá nhân để lấy đúng số follow ban đầu
-        final bool isStore = user.role == UserRole.seller || (user.storeName != null && user.storeName!.isNotEmpty);
+        // 👇 LOGIC QUAN TRỌNG: Xác định chế độ hiển thị (Shop hay Cá nhân)
+        bool isStoreMode = false;
+        
+        if (widget.forceIndividual) {
+           isStoreMode = false; // Bị ép -> Cá nhân
+        } else {
+           // Tự động: Nếu có role seller hoặc có tên shop -> Shop
+           isStoreMode = user.role == UserRole.seller || (user.storeName != null && user.storeName!.isNotEmpty);
+        }
         
         setState(() {
           _sellerUser = user;
-          // 👇 Gán giá trị ban đầu cho biến đếm local
-          _localFollowerCount = isStore ? user.storeFollowers : user.followers;
+          // Lấy đúng số follower dựa trên chế độ
+          _localFollowerCount = isStoreMode ? user.storeFollowers : user.followers;
         });
       }
     } catch (e) {
@@ -77,7 +85,12 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     if (_currentUserId == widget.userId) return; // Không tự follow mình
 
     // A. Xác định xem đối phương là Shop hay Cá nhân
-    final bool isStoreTarget = _sellerUser!.role == UserRole.seller || (_sellerUser!.storeName != null);
+    bool isStoreTarget = false;
+    if (widget.forceIndividual) {
+      isStoreTarget = false;
+    } else {
+      isStoreTarget = _sellerUser!.role == UserRole.seller || (_sellerUser!.storeName != null && _sellerUser!.storeName!.isNotEmpty);
+    }
     
     // B. Lưu trạng thái cũ để backup nếu lỗi
     final bool originalState = _isFollowing;
@@ -163,7 +176,12 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     }
 
     // 1. Xác định xem có phải là Shop không
-    final bool isStore = _sellerUser!.role == UserRole.seller || (_sellerUser!.storeName != null && _sellerUser!.storeName!.isNotEmpty);
+    bool isStore = false;
+    if (widget.forceIndividual) {
+      isStore = false; 
+    } else {
+      isStore = _sellerUser!.role == UserRole.seller || (_sellerUser!.storeName != null && _sellerUser!.storeName!.isNotEmpty);
+    }
     
     // 2. 👇 LOGIC LẤY TÊN (SỬA LẠI CHỖ NÀY)
     // Mặc định lấy tên hiển thị cá nhân (displayName)
@@ -342,14 +360,33 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                   StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('vehicles')
-                        .where('ownerId', isEqualTo: widget.userId)
-                        .where('status', isEqualTo: 'approved')
-                        .orderBy('createdAt', descending: true)
-                        .snapshots(),
+                         .where('ownerId', isEqualTo: widget.userId)
+                         .where('status', isEqualTo: 'approved')
+                         // 👇 THÊM ĐIỀU KIỆN LỌC NÀY
+                         // Nếu đang xem Shop -> Chỉ hiện tin có storeName
+                         // Nếu đang xem Cá nhân -> Chỉ hiện tin KHÔNG có storeName (hoặc null)
+                         // .where('storeName', isNull: !isStore) // ⚠️ Lưu ý: Firestore query null hơi phức tạp
+                         
+                         // CÁCH ĐƠN GIẢN HƠN: Lọc ở phía Client (bên dưới)
+                         .orderBy('createdAt', descending: true)
+                         .snapshots(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                         return const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("Chưa có tin đăng nào.")));
                       }
+                      final allDocs = snapshot.data!.docs;
+                       final filteredDocs = allDocs.where((doc) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          final hasStoreName = data['storeName'] != null && data['storeName'].toString().isNotEmpty;
+                          
+                          if (isStore) {
+                            return hasStoreName; // Shop chỉ hiện tin Shop
+                          } else {
+                            return !hasStoreName; // Cá nhân chỉ hiện tin Cá nhân
+                          }
+                       }).toList();
+
+                       if (filteredDocs.isEmpty) return const Text("Chưa có tin đăng nào.");
                       final docs = snapshot.data!.docs;
                       return GridView.builder(
                         shrinkWrap: true,

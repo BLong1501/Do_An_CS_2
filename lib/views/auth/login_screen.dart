@@ -275,35 +275,44 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      onPressed: () async {
+                     onPressed: () async {
                         FocusScope.of(context).unfocus(); // Tắt bàn phím
 
                         try {
+                          // 1. Gọi hàm login (chỉ login, không fetch data ngay)
                           await authProvider.login(
                             _emailController.text.trim(),
                             _passwordController.text.trim(),
                           );
 
-                          // LƯU THÔNG TIN NẾU CHỌN GHI NHỚ
+                          // 2. 👇 GỌI HÀM NÀY ĐỂ KÍCH HOẠT LẮNG NGHE REAL-TIME
+                          authProvider.startListeningToUserData();
+
+                          // 3. Xử lý ghi nhớ mật khẩu
                           _handleRememberMe();
 
                           if (context.mounted) {
                             final user = authProvider.user;
+                            
+                            // 4. Điều hướng
+                            // Lưu ý: Lúc này 'user' có thể chưa kịp load xong từ stream 
+                            // nên authProvider.user có thể null trong tích tắc đầu tiên.
+                            // Tuy nhiên, vì hàm login cũ của bạn có fetchUserData nên nó vẫn có data.
+                            
+                            // Tốt nhất: Kiểm tra role sau khi stream trả về data (ở màn hình sau)
+                            // Hoặc tạm thời dùng data cũ lấy được từ login() để điều hướng
+                            
                             if (user != null) {
                               if (user.role.name == 'admin') {
                                 Navigator.pushAndRemoveUntil(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const AdminScreen(),
-                                  ), // Sửa AdminScreen của bạn ở đây
+                                  MaterialPageRoute(builder: (_) => const AdminScreen()),
                                   (route) => false,
                                 );
                               } else {
                                 Navigator.pushAndRemoveUntil(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const MainScreen(),
-                                  ),
+                                  MaterialPageRoute(builder: (_) => const MainScreen()),
                                   (route) => false,
                                 );
                               }

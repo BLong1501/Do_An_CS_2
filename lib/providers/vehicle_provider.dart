@@ -112,6 +112,7 @@ Future<bool> uploadVehicle(VehicleModel vehicle) async {
     _isLoading = true;
     notifyListeners();
 
+
     try {
       for (var image in images) {
         // Tạo tên file duy nhất: vehicles/timestamp_filename
@@ -133,5 +134,25 @@ Future<bool> uploadVehicle(VehicleModel vehicle) async {
       notifyListeners();
     }
     return downloadUrls;
+  }
+  Future<bool> updateVehicle(VehicleModel vehicle) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      print("Đang cập nhật xe ID: ${vehicle.id}");
+      
+      await FirebaseFirestore.instance
+          .collection('vehicles')
+          .doc(vehicle.id) // Tìm đúng document theo ID
+          .update(vehicle.toMap()); // Ghi đè dữ liệu mới
+
+      return true;
+    } catch (e) {
+      print("Lỗi cập nhật: $e");
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }

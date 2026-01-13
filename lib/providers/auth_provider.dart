@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
 import '../repositories/auth_repository.dart';
 import 'dart:io';
+import 'dart:async'; // Nhớ import cái này
 import 'package:firebase_storage/firebase_storage.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -14,18 +15,50 @@ class AuthProvider extends ChangeNotifier {
 
   UserModel? _user;
   UserModel? get user => _user;
+  StreamSubscription<DocumentSnapshot>? _userSubscription;
 
   Future<void> fetchUserData() async {
     _user = await _authRepo.getCurrentUserData();
     notifyListeners();
+    // 👇 Mẹo nhỏ: Sau khi fetch xong 1 lần, ta âm thầm bật lắng nghe luôn
+    // để sau này có thay đổi gì thì nó tự cập nhật.
+    startListeningToUserData();
   }
-  
+  void startListeningToUserData() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
 
+    // Hủy cái cũ nếu đang chạy để tránh trùng lặp
+    _userSubscription?.cancel();
+
+    _userSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUser.uid)
+        .snapshots() // Lắng nghe liên tục
+        .listen((snapshot) {
+          if (snapshot.exists && snapshot.data() != null) {
+            _user = UserModel.fromMap(snapshot.data() as Map<String, dynamic>, snapshot.id);
+            print("🔄 Data User cập nhật Realtime: Follow = ${_user?.followers}");
+            notifyListeners();
+          }
+        }, onError: (e) {
+          print("Lỗi lắng nghe user: $e");
+        });
+  }
   Future<void> logout() async {
+    _userSubscription?.cancel(); // Hủy lắng nghe khi đăng xuất
+    _userSubscription = null;
+    
     await FirebaseAuth.instance.signOut();
     _user = null; 
     notifyListeners();
   }
+
+  // Future<void> logout() async {
+  //   await FirebaseAuth.instance.signOut();
+  //   _user = null; 
+  //   notifyListeners();
+  // }
 
 // Thêm tham số phone và address vào hàm
   Future<void> register(String email, String password, String name, String phone, String address) async {
@@ -135,7 +168,7 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    try {
+    try { 
       // 1. Cập nhật Firestore
       await FirebaseFirestore.instance
           .collection('users')

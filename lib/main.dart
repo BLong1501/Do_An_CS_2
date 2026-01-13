@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import 'package:firebase_core/firebase_core.dart'; // 1. Bỏ comment dòng này
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 
@@ -10,18 +9,11 @@ import 'package:my_app/providers/vehicle_provider.dart';
 import 'package:my_app/views/auth/login_screen.dart';
 import 'package:my_app/views/main_screen.dart';
 
-// 👇 2. ĐÂY LÀ PHẦN QUAN TRỌNG BẠN ĐANG THIẾU
 void main() async {
-  // Đảm bảo Flutter Engine đã sẵn sàng trước khi gọi code bất đồng bộ
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Khởi tạo Firebase
   await Firebase.initializeApp();
-  
-  // Chạy ứng dụng
   runApp(const MyApp());
 }
-// ------------------------------------------------
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -30,7 +22,23 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => my_auth.AuthProvider()),
+        // 👇 1. SỬA ĐOẠN NÀY ĐỂ KÍCH HOẠT REAL-TIME KHI AUTO LOGIN
+        ChangeNotifierProvider(
+          create: (_) {
+            final authProvider = my_auth.AuthProvider();
+            
+            // Kiểm tra: Nếu Firebase đã lưu phiên đăng nhập từ trước
+            if (FirebaseAuth.instance.currentUser != null) {
+              print("🚀 App khởi động: User đã đăng nhập -> Bắt đầu lắng nghe Real-time");
+              
+              // Gọi hàm này để AuthProvider bắt đầu nghe thay đổi từ Firestore ngay lập tức
+              authProvider.startListeningToUserData();
+            }
+            
+            return authProvider;
+          },
+        ),
+        
         ChangeNotifierProvider(create: (_) => VehicleProvider()),
       ],
       child: MaterialApp(
@@ -40,17 +48,21 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.blue,
           primaryColor: const Color.fromARGB(255, 48, 90, 204),
         ),
+        // 👇 2. Logic điều hướng (Giữ nguyên vì nó rất tốt)
         home: StreamBuilder<User?>(
           stream: FirebaseAuth.instance.authStateChanges(),
           builder: (context, snapshot) {
+            // Màn hình chờ khi đang kiểm tra trạng thái login
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
             }
             
+            // Nếu đã đăng nhập -> Vào MainScreen
             if (snapshot.hasData) {
               return const MainScreen(); 
             }
             
+            // Nếu chưa đăng nhập -> Vào LoginScreen
             return const LoginScreen();
           },
         ),

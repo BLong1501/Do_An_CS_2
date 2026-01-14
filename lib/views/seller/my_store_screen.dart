@@ -50,6 +50,7 @@ class MyStoreScreen extends StatelessWidget {
       // 👇 Đổi cấu trúc thành Column để chứa phần Follower ở trên và List xe ở dưới
       body: Column(
         children: [
+          
           // --- 1. PHẦN HIỂN THỊ FOLLOWER ---
           Container(
             width: double.infinity,

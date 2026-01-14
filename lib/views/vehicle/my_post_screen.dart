@@ -10,9 +10,9 @@ class MyPostsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Sử dụng DefaultTabController để quản lý 3 tab
+    // 1. SỬA LẠI SỐ LƯỢNG TAB TỪ 3 LÊN 4
     return DefaultTabController(
-      length: 3, // Tổng số tab
+      length: 4, 
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Quản lý tin đăng"),
@@ -20,19 +20,19 @@ class MyPostsScreen extends StatelessWidget {
           foregroundColor: Colors.black,
           elevation: 0,
           
-          // 1. THANH TAB BAR Ở TRÊN CÙNG
           bottom: const TabBar(
-            labelColor: Colors.purple, // Màu chữ khi chọn
-            unselectedLabelColor: Colors.grey, // Màu chữ khi không chọn
-            indicatorColor: Colors.purple, // Thanh gạch chân
+            labelColor: Colors.purple,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: Colors.purple,
+            isScrollable: false, // Cho phép cuộn nếu màn hình nhỏ
             tabs: [
               Tab(text: "Đang hiển thị"),
               Tab(text: "Chờ duyệt"),
               Tab(text: "Bị từ chối"),
+              Tab(text: "Đã bán"), // 2. THÊM TAB MỚI
             ],
           ),
         ),
-        // 2. NỘI DUNG TƯƠNG ỨNG VỚI CÁC TAB
         body: const TabBarView(
           children: [
             // Tab 1: Approved
@@ -43,6 +43,9 @@ class MyPostsScreen extends StatelessWidget {
             
             // Tab 3: Rejected
             _VehicleListByStatus(status: 'rejected'),
+
+            // Tab 4: Sold (Đã bán) - 3. THÊM VIEW CHO TAB MỚI
+            _VehicleListByStatus(status: 'sold'),
           ],
         ),
       ),
@@ -52,10 +55,11 @@ class MyPostsScreen extends StatelessWidget {
 
 // --- WIDGET CON ĐỂ HIỂN THỊ DANH SÁCH THEO TRẠNG THÁI ---
 class _VehicleListByStatus extends StatelessWidget {
-  final String status; // Nhận vào trạng thái muốn lọc (approved/pending/rejected)
+  final String status;
 
   const _VehicleListByStatus({required this.status});
-  // 1. HÀM XỬ LÝ XÓA TIN
+
+  // 1. HÀM XỬ LÝ XÓA TIN (Giữ nguyên)
   void _confirmDelete(BuildContext context, String vehicleId) {
     showDialog(
       context: context,
@@ -64,33 +68,24 @@ class _VehicleListByStatus extends StatelessWidget {
         content: const Text("Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa không?"),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx), // Đóng hộp thoại
+            onPressed: () => Navigator.pop(ctx),
             child: const Text("Hủy", style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(ctx); // Đóng hộp thoại trước
-              
+              Navigator.pop(ctx);
               try {
-                // Xóa document trong Firestore
                 await FirebaseFirestore.instance
                     .collection('vehicles')
                     .doc(vehicleId)
                     .delete();
-
-                // (Tùy chọn) Nếu bạn muốn xóa cả ảnh trong Storage thì cần viết thêm logic ở đây
-                
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Đã xóa tin đăng thành công!")),
                   );
                 }
               } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Lỗi khi xóa: $e"), backgroundColor: Colors.red),
-                  );
-                }
+                // Handle error
               }
             },
             child: const Text("Xóa ngay", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
@@ -99,7 +94,52 @@ class _VehicleListByStatus extends StatelessWidget {
       ),
     );
   }
- @override
+
+  // 4. HÀM XỬ LÝ ĐÁNH DẤU ĐÃ BÁN (MỚI THÊM)
+  void _markAsSold(BuildContext context, String vehicleId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Xác nhận đã bán?"),
+        content: const Text("Tin đăng sẽ được ẩn khỏi trang chủ và chuyển vào mục 'Đã bán'."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Hủy", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            onPressed: () async {
+              Navigator.pop(ctx); // Đóng dialog
+              
+              try {
+                // Cập nhật trạng thái status -> 'sold'
+                await FirebaseFirestore.instance
+                    .collection('vehicles')
+                    .doc(vehicleId)
+                    .update({'status': 'sold'});
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Chúc mừng! Đã cập nhật trạng thái thành công.")),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Lỗi: $e"), backgroundColor: Colors.red),
+                  );
+                }
+              }
+            },
+            child: const Text("Xác nhận đã bán", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -120,6 +160,7 @@ class _VehicleListByStatus extends StatelessWidget {
           String msg = "";
           if (status == 'approved') msg = "Bạn không có xe nào đang bán.";
           else if (status == 'pending') msg = "Không có tin nào đang chờ duyệt.";
+          else if (status == 'sold') msg = "Chưa có xe nào được bán.";
           else msg = "Không có tin nào bị từ chối.";
           return Center(child: Text(msg, style: const TextStyle(color: Colors.grey)));
         }
@@ -131,18 +172,18 @@ class _VehicleListByStatus extends StatelessWidget {
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
-            final docId = docs[index].id; // Lấy ID để xóa
+            final docId = docs[index].id;
 
             try {
               final vehicle = VehicleModel.fromMap(data, docId);
               
               return Container(
-                margin: const EdgeInsets.only(bottom: 15), // Khoảng cách giữa các xe
+                margin: const EdgeInsets.only(bottom: 15),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
-                     BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5)
+                      BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5)
                   ]
                 ),
                 child: Column(
@@ -157,35 +198,33 @@ class _VehicleListByStatus extends StatelessWidget {
                             context,
                             MaterialPageRoute(builder : (_)=> VehicleDetailScreen(vehicle: vehicle)
                           ));
-                          // TODO: Xem chi tiết hoặc Sửa tin
                         }
                       ),
                     ),
                     
-                    // 2. THANH CÔNG CỤ (NÚT XÓA)
+                    // 5. THANH CÔNG CỤ (NÚT BẤM)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.end, // Canh phải
                         children: [
-                          // Hiển thị trạng thái/Lý do từ chối
-                          Expanded(
-                            child: status == 'rejected'
-                                ? const Text(
-                                    "Vi phạm chính sách",
-                                    style: TextStyle(color: Colors.red, fontStyle: FontStyle.italic, fontSize: 12),
-                                  )
-                                : Text(
-                                    status == 'approved' ? "Đang hiển thị" : "Đang chờ duyệt",
-                                    style: TextStyle(
-                                      color: status == 'approved' ? Colors.green : Colors.orange,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12
-                                    ),
-                                  ),
-                          ),
+                          
+                          // TRƯỜNG HỢP: XE ĐANG HIỂN THỊ -> HIỆN NÚT "ĐÃ BÁN"
+                          if (status == 'approved') 
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: TextButton.icon(
+                                onPressed: () => _markAsSold(context, docId),
+                                icon: const Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
+                                label: const Text("Đã bán", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                style: TextButton.styleFrom(
+                                  backgroundColor: Colors.green.withOpacity(0.1),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                ),
+                              ),
+                            ),
 
-                          // Nút Xóa
+                          // Nút Xóa (Luôn hiện)
                           TextButton.icon(
                             onPressed: () => _confirmDelete(context, docId),
                             icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),

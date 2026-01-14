@@ -45,7 +45,7 @@ class FavoriteScreen extends StatelessWidget {
             .collection('users')
             .doc(user.uid)
             .collection('favorites')
-            .orderBy('addedAt', descending: true) // Tin mới lưu hiện lên đầu
+            .orderBy('addedAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -53,16 +53,7 @@ class FavoriteScreen extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.favorite_border, size: 80, color: Colors.grey),
-                  const SizedBox(height: 10),
-                  const Text("Bạn chưa lưu tin nào!", style: TextStyle(color: Colors.grey)),
-                ],
-              ),
-            );
+            return const Center(child: Text("Bạn chưa lưu tin nào!"));
           }
 
           final favoriteDocs = snapshot.data!.docs;
@@ -78,68 +69,67 @@ class FavoriteScreen extends StatelessWidget {
             itemCount: favoriteDocs.length,
             itemBuilder: (context, index) {
               final vehicleId = favoriteDocs[index]['vehicleId'];
+              final favoriteDocId = favoriteDocs[index].id; // Lấy ID của dòng favorite để xóa
 
-              // 2. Với mỗi ID, tải thông tin chi tiết xe từ collection 'vehicles'
-              // Dùng FutureBuilder vì ta cần lấy dữ liệu 1 lần cho mỗi item
               return FutureBuilder<DocumentSnapshot>(
                 future: FirebaseFirestore.instance.collection('vehicles').doc(vehicleId).get(),
                 builder: (context, vehicleSnapshot) {
                   // 1. Đang tải
                   if (!vehicleSnapshot.hasData) {
                     return Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+                      decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(10)),
+                      child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                     );
                   }
                   
-                  // 2. Nếu xe đã bị xóa vĩnh viễn
+                  // 🔥 2. NẾU XE ĐÃ BỊ XÓA -> TỰ ĐỘNG XÓA KHỎI FAVORITE LUÔN 🔥
                   if (!vehicleSnapshot.data!.exists) {
-                    return Container(
-                       decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(10)),
-                       child: const Center(child: Text("Tin đã xóa", style: TextStyle(fontSize: 12, color: Colors.grey))),
-                    );
+                    // Gọi hàm xóa "âm thầm" (không cần await để UI chạy mượt)
+                    FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(user.uid)
+                        .collection('favorites')
+                        .doc(favoriteDocId) // Xóa dòng favorite này đi
+                        .delete();
+
+                    // Trả về SizedBox rỗng để chỗ này biến mất ngay lập tức trên UI
+                    return const SizedBox(); 
                   }
 
                   final data = vehicleSnapshot.data!.data() as Map<String, dynamic>;
 
-                  // 🔥 3. (MỚI THÊM) KIỂM TRA TRẠNG THÁI XE
-                  // Nếu xe chưa duyệt (pending) hoặc bị từ chối (rejected), không hiện lên
+                  // 3. Nếu xe chưa duyệt hoặc bị ẩn -> Cũng xóa luôn hoặc chỉ ẩn đi (Tùy bạn)
+                  // Ở đây tôi chọn phương án: Chỉ ẩn đi, không xóa, vì xe có thể được duyệt lại
                   if (data['status'] != 'approved') {
-                    return Container(
-                       decoration: BoxDecoration(
-                         color: Colors.grey[100], 
-                         borderRadius: BorderRadius.circular(10),
-                         border: Border.all(color: Colors.grey.shade300)
-                       ),
-                       child: Column(
-                         mainAxisAlignment: MainAxisAlignment.center,
-                         children: [
-                           const Icon(Icons.visibility_off_outlined, color: Colors.grey),
-                           const SizedBox(height: 5),
-                           const Text("Tin đang ẩn", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                           Text(
-                             data['status'] == 'pending' ? "(Chờ duyệt)" : "(Đã ẩn/Từ chối)",
-                             style: const TextStyle(fontSize: 10, color: Colors.grey),
-                           ),
-                         ],
-                       ),
-                    );
+                     return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100], 
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey.shade300)
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.visibility_off_outlined, color: Colors.grey),
+                            const SizedBox(height: 5),
+                            const Text("Tin đang ẩn", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                            Text(
+                              data['status'] == 'pending' ? "(Chờ duyệt)" : "(Đã ẩn/Từ chối)",
+                              style: const TextStyle(fontSize: 10, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                     );
                   }
-                  // ------------------------------------------
 
+                  // 4. Hiển thị xe bình thường
                   final vehicle = VehicleModel.fromMap(data, vehicleSnapshot.data!.id);
 
                   return VehicleCard(
                     vehicle: vehicle,
                     onTap: () {
                       Navigator.push(context,
-                            MaterialPageRoute(
-                              builder: (_)=>VehicleDetailScreen(vehicle: vehicle),
-                            ));
-                      // TODO: Navigate to Detail
+                            MaterialPageRoute(builder: (_)=>VehicleDetailScreen(vehicle: vehicle)));
                     },
                   );
                 },
@@ -149,5 +139,6 @@ class FavoriteScreen extends StatelessWidget {
         },
       ),
     );
+    
   }
 }

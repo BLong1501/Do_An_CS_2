@@ -117,7 +117,16 @@ class _CategoryResultScreenState extends State<CategoryResultScreen> {
                   DropdownButtonFormField<String>(
                     value: tempBrand,
                     decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(30)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(30)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(30)),
+                      ),
+                      
                       contentPadding: EdgeInsets.all(10),
                     ),
                     hint: const Text("Tất cả hãng"),

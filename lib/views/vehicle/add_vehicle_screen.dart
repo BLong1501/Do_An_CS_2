@@ -99,7 +99,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       });
     }
   }
-
+  
   // Hàm xóa ảnh đã chọn (nếu user đổi ý)
   void _removeImage(int index) {
     setState(() {

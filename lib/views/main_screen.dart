@@ -4,14 +4,15 @@ import 'package:my_app/views/profile/profile_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:my_app/providers/auth_provider.dart';
 import 'package:my_app/models/user_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 
 // Import các màn hình con
-import 'package:my_app/views/home/home_screen.dart'; // Đổi tên HomeScreen cũ thành HomeContentScreen hoặc giữ nguyên nhưng sửa nội dung
-// import 'package:my_app/views/chat/chat_list_screen.dart'; // Giả sử bạn có màn hình chat
+import 'package:my_app/views/home/home_screen.dart';
+// import 'package:my_app/views/chat/chat_list_screen.dart';
 import 'package:my_app/views/vehicle/my_post_screen.dart';
 import 'package:my_app/views/favourite/favourite_screen.dart';
-// import 'package:my_app/views/profile/profile_screen.dart'; // Màn hình tài khoản
+// import 'package:my_app/views/profile/profile_screen.dart';
 import 'package:my_app/views/vehicle/add_vehicle_screen.dart';
 // import 'package:my_app/views/auth/login_screen.dart';
 
@@ -26,14 +27,14 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0; // Tab hiện tại (Mặc định là 0 - Trang chủ)
 
   // Danh sách các màn hình tương ứng với từng tab
-  // Lưu ý: Sẽ xử lý logic hiển thị theo role ở hàm build
   final List<Widget> _pages = [
-    const HomeScreen(),      // Index 0: Trang chủ (Sửa lại HomeScreen cũ bỏ BottomBar đi)
-    const ChatListScreen(), // Index 1: Tin nhắn (Thay bằng ChatListScreen sau này)
+    const HomeScreen(),      // Index 0: Trang chủ
+    const ChatListScreen(),  // Index 1: Tin nhắn
     const MyPostsScreen(),   // Index 2: Tin của tôi (Chỉ hiện cho Seller)
     const FavoriteScreen(),  // Index 3: Yêu thích
-    const ProfileScreen(), // Index 4: Tài khoản (Thay bằng ProfileScreen sau này)
+    const ProfileScreen(),   // Index 4: Tài khoản
   ];  
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +43,7 @@ class _MainScreenState extends State<MainScreen> {
       Provider.of<AuthProvider>(context, listen: false).fetchUserData();
     });
   }
+
   // --------------------------------------
   @override
   Widget build(BuildContext context) {
@@ -60,7 +62,10 @@ class _MainScreenState extends State<MainScreen> {
             children: _pages,
           ),
 
-          // NÚT ĐĂNG TIN (FAB) - Đã sửa logic hiển thị
+          // NÚT ĐĂNG TIN (FAB)
+          // Import Firestore
+
+          // NÚT ĐĂNG TIN (FAB)
           floatingActionButton: showFab
               ? SizedBox(
                   height: 65, width: 65,
@@ -68,17 +73,58 @@ class _MainScreenState extends State<MainScreen> {
                     backgroundColor: Colors.purple,
                     elevation: 5,
                     shape: const CircleBorder(),
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AddVehicleScreen()));
+                    // 👇 SỬA ĐOẠN onPressed NÀY
+                    onPressed: () async {
+                      // 1. Hiện loading để user biết đang xử lý
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (ctx) => const Center(child: CircularProgressIndicator()),
+                      );
+
+                      try {
+                        // 2. Lấy dữ liệu mới nhất từ Firestore (Không lấy từ cache hay provider để đảm bảo chính xác)
+                        final userDoc = await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(user!.uid) // user lấy từ auth provider ở trên
+                            .get();
+
+                        // Tắt loading
+                        if (context.mounted) Navigator.pop(context);
+
+                        if (userDoc.exists) {
+                          final userData = userDoc.data() as Map<String, dynamic>;
+                          // Mặc định là true nếu trường này chưa có
+                          final bool canPost = userData['canPost'] ?? true; 
+                          final bool isBanned = userData['isBanned'] ?? false;
+
+                          // 3. KIỂM TRA QUYỀN
+                          if (isBanned) {
+                             _showRestrictionDialog(context, "Tài khoản của bạn đã bị KHÓA vĩnh viễn.");
+                             return;
+                          }
+
+                          if (!canPost) {
+                             _showRestrictionDialog(context, "Chức năng đăng bài đang bị tạm khóa do vi phạm tiêu chuẩn cộng đồng.");
+                             return;
+                          }
+
+                          // 4. NẾU ỔN THÌ MỚI CHO VÀO TRANG ĐĂNG
+                          if (context.mounted) {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const AddVehicleScreen()));
+                          }
+                        }
+                      } catch (e) {
+                        if (context.mounted) Navigator.pop(context); // Tắt loading nếu lỗi
+                        print("Lỗi kiểm tra quyền: $e");
+                      }
                     },
                     child: const Icon(Icons.add, color: Colors.white, size: 30),
                   ),
                 )
-              : null, // Nếu không phải trang chủ hoặc không phải seller thì ẩn nút
-          
-          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+              : null,
 
-          // THANH BOTTOM BAR (Giữ nguyên)
+          // THANH BOTTOM BAR
           bottomNavigationBar: BottomAppBar(
             elevation: 10,
             color: Colors.white,
@@ -93,7 +139,7 @@ class _MainScreenState extends State<MainScreen> {
                   if (isSeller)
                     _buildBottomItem(Icons.assignment_outlined, "Tin của tôi", 2),
                   _buildBottomItem(Icons.favorite_border, "Yêu thích", 3),
-                  _buildBottomItem(Icons.person_outline, "Tài khoản", 4, isLogout: true),
+                  _buildBottomItem(Icons.person_outline, "Tài khoản", 4), // Bỏ isLogout: true
                 ],
               ),
             ),
@@ -103,32 +149,15 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildBottomItem(IconData icon, String label, int index, {bool isLogout = false}) {
+  Widget _buildBottomItem(IconData icon, String label, int index) { // Bỏ tham số isLogout
     final bool isActive = _currentIndex == index;
     
     return InkWell(
-      onTap: () async {
-        if (isLogout) {
-           // Tạm thời xử lý logout ở đây hoặc chuyển sang tab Tài khoản
-           // Nếu muốn chuyển tab:
-           setState(() => _currentIndex = index);
-           
-           // Nếu muốn logout luôn như cũ:
-           /*
-           await FirebaseAuth.instance.signOut();
-           if (context.mounted) {
-             Navigator.pushAndRemoveUntil(
-               context,
-               MaterialPageRoute(builder: (_) => const LoginScreen()),
-               (route) => false,
-             );
-           }
-           */
-        } else {
-          setState(() {
-            _currentIndex = index;
-          });
-        }
+      onTap: () {
+        // Chỉ đơn giản là chuyển tab
+        setState(() {
+          _currentIndex = index;
+        });
       },
       borderRadius: BorderRadius.circular(30),
       child: Padding(
@@ -152,3 +181,25 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
+// Hàm hiển thị thông báo chặn
+  void _showRestrictionDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.block, color: Colors.red),
+            SizedBox(width: 10),
+            Text("Hạn chế quyền", style: TextStyle(color: Colors.red)),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Đã hiểu"),
+          ),
+        ],
+      ),
+    );
+  }

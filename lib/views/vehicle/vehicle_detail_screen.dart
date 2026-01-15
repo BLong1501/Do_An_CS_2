@@ -6,6 +6,7 @@ import 'package:my_app/providers/chat_provider.dart';
 import 'package:my_app/views/chat/chat_detail_screen.dart';
 import 'package:my_app/views/profile/public_profile_screen.dart';
 import 'package:my_app/views/vehicle/add_vehicle_screen.dart';
+import 'package:my_app/views/admin/report/report_dialog_screen.dart'; // Import Dialog báo cáo
 import 'package:provider/provider.dart';
 import '../../models/vehicle_model.dart';
 
@@ -16,15 +17,14 @@ class VehicleDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Determine if this specific POST is a store post.
-    // If vehicle.storeName is null or empty, it's an individual post.
+    // Xác định xem đây là bài đăng của Cửa hàng hay Cá nhân
     final bool isStorePost =
         vehicle.storeName != null && vehicle.storeName!.isNotEmpty;
 
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-    // Check ownership
-    final bool isOwner =
+    // Kiểm tra xem người xem có phải là chủ xe không
+    final bool isOwner = 
         currentUserId != null && currentUserId == vehicle.ownerId;
 
     return Scaffold(
@@ -35,9 +35,10 @@ class VehicleDetailScreen extends StatelessWidget {
         foregroundColor: Colors.black,
         elevation: 0,
 
-        // Action buttons for owner
+        // Các nút hành động trên AppBar
         actions: isOwner
             ? [
+                // Nút Sửa (Chỉ hiện cho chủ xe)
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.blue),
                   tooltip: "Chỉnh sửa",
@@ -46,8 +47,7 @@ class VehicleDetailScreen extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (_) => AddVehicleScreen(
-                          isStorePost:
-                              isStorePost, // Pass the correct post type
+                          isStorePost: isStorePost,
                           vehicleToEdit: vehicle,
                         ),
                       ),
@@ -56,15 +56,38 @@ class VehicleDetailScreen extends StatelessWidget {
                     });
                   },
                 ),
+                // Nút Xóa (Chỉ hiện cho chủ xe)
                 IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
+                  icon: const Icon(Icons.delete, color: Color.fromARGB(255, 188, 67, 67)),
                   tooltip: "Xóa tin",
                   onPressed: () {
                     _confirmDelete(context);
                   },
                 ),
               ]
-            : null,
+            : [
+                // Nút Báo cáo (Chỉ hiện cho người xem)
+                IconButton(
+                  icon: const Icon(Icons.report_gmailerrorred, color: Colors.red),
+                  tooltip: "Báo cáo vi phạm",
+                  onPressed: () {
+                    if (currentUserId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Vui lòng đăng nhập để báo cáo.")));
+                      return;
+                    }
+                    
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => ReportDialog(
+                        vehicleId: vehicle.id,
+                        reportedUserId: vehicle.ownerId,
+                        vehicleTitle: vehicle.title,
+                      ),
+                    );
+                  },
+                ),
+            ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -101,7 +124,7 @@ class VehicleDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 2. PRICE & TITLE
+                  // 2. GIÁ & TIÊU ĐỀ
                   Text(
                     _formatCurrency(vehicle.price),
                     style: const TextStyle(
@@ -136,7 +159,7 @@ class VehicleDetailScreen extends StatelessWidget {
 
                   const Divider(height: 30),
 
-                  // 3. SPECS
+                  // 3. THÔNG SỐ KỸ THUẬT
                   const Text(
                     "Thông số kỹ thuật",
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -163,7 +186,7 @@ class VehicleDetailScreen extends StatelessWidget {
 
                   const Divider(height: 30),
 
-                  // 4. DESCRIPTION
+                  // 4. MÔ TẢ CHI TIẾT
                   const Text(
                     "Mô tả chi tiết",
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -178,7 +201,7 @@ class VehicleDetailScreen extends StatelessWidget {
 
                   const Divider(height: 30),
 
-                  // 5. SELLER INFO
+                  // 5. THÔNG TIN NGƯỜI BÁN
                   FutureBuilder<DocumentSnapshot>(
                     future: FirebaseFirestore.instance
                         .collection('users')
@@ -188,7 +211,7 @@ class VehicleDetailScreen extends StatelessWidget {
                       String sellerName = "Đang tải...";
                       String? displayAvaUrl;
 
-                      // Fallback name if data isn't loaded yet but we have vehicle data
+                      // Fallback name
                       if (isStorePost && vehicle.storeName != null) {
                         sellerName = vehicle.storeName!;
                       }
@@ -200,13 +223,13 @@ class VehicleDetailScreen extends StatelessWidget {
                             snapshot.data!.data() as Map<String, dynamic>;
 
                         if (isStorePost) {
-                          // --- STORE LOGIC ---
+                          // Logic hiển thị Shop
                           displayAvaUrl = userData['storeAva'];
                           if (userData['storeName'] != null) {
                             sellerName = userData['storeName'];
                           }
                         } else {
-                          // --- INDIVIDUAL LOGIC ---
+                          // Logic hiển thị Cá nhân
                           displayAvaUrl = userData['photoUrl'];
                           sellerName = userData['displayName'] ?? "Người dùng";
                         }
@@ -219,15 +242,11 @@ class VehicleDetailScreen extends StatelessWidget {
                             MaterialPageRoute(
                               builder: (_) => PublicProfileScreen(
                                 userId: vehicle.ownerId,
-                                // 👇 LOGIC CHUẨN:
-                                // Nếu bài đăng là Shop -> forceIndividual = false (để nó tự hiện Shop)
-                                // Nếu bài đăng là Cá nhân -> forceIndividual = true (để ép hiện Cá nhân)
                                 forceIndividual: !isStorePost,
                               ),
                             ),
                           );
                         },
-
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -257,9 +276,7 @@ class VehicleDetailScreen extends StatelessWidget {
                                       )
                                     : null,
                               ),
-
                               const SizedBox(width: 15),
-
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -274,7 +291,6 @@ class VehicleDetailScreen extends StatelessWidget {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 4),
-
                                     if (isStorePost)
                                       Container(
                                         padding: const EdgeInsets.symmetric(
@@ -283,9 +299,7 @@ class VehicleDetailScreen extends StatelessWidget {
                                         ),
                                         decoration: BoxDecoration(
                                           color: Colors.purple,
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
+                                          borderRadius: BorderRadius.circular(4),
                                         ),
                                         child: const Text(
                                           "Cửa hàng uy tín",
@@ -307,19 +321,13 @@ class VehicleDetailScreen extends StatelessWidget {
                                   ],
                                 ),
                               ),
-
-                              IconButton(
-                                onPressed: () {
-                                  /* Call Logic */
-                                },
-                                icon: const CircleAvatar(
-                                  backgroundColor: Colors.green,
-                                  radius: 18,
-                                  child: Icon(
-                                    Icons.phone,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
+                              const CircleAvatar(
+                                backgroundColor: Colors.green,
+                                radius: 18,
+                                child: Icon(
+                                  Icons.arrow_forward_ios,
+                                  color: Colors.white,
+                                  size: 14,
                                 ),
                               ),
                             ],
@@ -335,6 +343,8 @@ class VehicleDetailScreen extends StatelessWidget {
           ],
         ),
       ),
+      
+      // BOTTOM NAVIGATION BAR: NÚT LIÊN HỆ
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -343,7 +353,7 @@ class VehicleDetailScreen extends StatelessWidget {
             BoxShadow(
               color: Colors.black12,
               blurRadius: 10,
-              offset: Offset(0, -2),
+              offset: const Offset(0, -2),
             ),
           ],
         ),
@@ -358,44 +368,40 @@ class VehicleDetailScreen extends StatelessWidget {
           onPressed: () { 
              // 1. Kiểm tra đăng nhập
              if (currentUserId == null) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng đăng nhập để chat!")));
-                return;
+               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng đăng nhập để chat!")));
+               return;
              }
              
              // 2. Không cho tự chat với chính mình
              if (isOwner) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Đây là bài đăng của bạn!")));
-                return;
+               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Đây là bài đăng của bạn!")));
+               return;
              }
 
              // 3. Tạo ID phòng chat
-             // Logic: buyerID_sellerID_vehicleID
              final chatProvider = Provider.of<ChatProvider>(context, listen: false);
              final chatRoomId = chatProvider.getChatRoomId(currentUserId, vehicle.ownerId, vehicle.id);
 
-             // 4. Lấy tên người bán (Bạn có thể lấy từ FutureBuilder ở trên hoặc truyền tạm tên User)
-             // Ở đây mình ví dụ lấy tạm tên Store nếu có, hoặc "Người bán"
+             // 4. Lấy tên người bán
              String sellerDisplayName = "Người bán";
              if (vehicle.storeName != null && vehicle.storeName!.isNotEmpty) {
-                sellerDisplayName = vehicle.storeName!;
+               sellerDisplayName = vehicle.storeName!;
              }
 
              // 5. Chuyển sang màn hình Chat
-            // 5. Chuyển sang màn hình Chat
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ChatDetailScreen(
-                    chatRoomId: chatRoomId,
-                    receiverId: vehicle.ownerId,
-                    receiverName: sellerDisplayName,
-                    // --- TRUYỀN THÊM CÁC DỮ LIỆU NÀY ---
-                    vehicleId: vehicle.id,     // Để lưu vào DB
-                    vehicleTitle: vehicle.title, // Để hiện tên xe trong danh sách chat
-                    receiverAvatar: null, // Nếu ChatDetail cần hiển thị avatar
-                  ),
-                ),
-              );
+             Navigator.push(
+               context,
+               MaterialPageRoute(
+                 builder: (_) => ChatDetailScreen(
+                   chatRoomId: chatRoomId,
+                   receiverId: vehicle.ownerId,
+                   receiverName: sellerDisplayName,
+                   vehicleId: vehicle.id,     
+                   vehicleTitle: vehicle.title,
+                   receiverAvatar: null, 
+                 ),
+               ),
+             );
           },
           child: const Text(
             "LIÊN HỆ NGAY",
@@ -409,6 +415,8 @@ class VehicleDetailScreen extends StatelessWidget {
       ),
     );
   }
+
+  // --- CÁC HÀM PHỤ TRỢ (HELPER METHODS) ---
 
   Widget _buildSpecItem(String label, String value) {
     return Row(
@@ -446,7 +454,6 @@ class VehicleDetailScreen extends StatelessWidget {
     return "Vừa xong";
   }
 
-  // Moved _confirmDelete inside the class
   void _confirmDelete(BuildContext context) {
     showDialog(
       context: context,
@@ -475,12 +482,12 @@ class VehicleDetailScreen extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Đã xóa bài đăng thành công")),
                   );
-                  Navigator.pop(context);
+                  Navigator.pop(context); // Quay về màn hình trước
                 }
               } catch (e) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text("Lỗi xóa: $e")));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi xóa: $e")));
+                }
               }
             },
             child: const Text("Xóa", style: TextStyle(color: Colors.white)),

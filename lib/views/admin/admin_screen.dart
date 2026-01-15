@@ -1,93 +1,120 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import để đếm badge
 import 'package:my_app/services/data_seeder.dart';
-import 'package:my_app/services/notification_service.dart'; // Import service thông báo
+import 'package:my_app/services/notification_service.dart';
+import 'package:my_app/views/admin/tabs/user_management_screen.dart';
 import '../auth/login_screen.dart';
-import 'tabs/vehicle_approval_tab.dart';
-import 'tabs/seller_approval_tab.dart';
-import 'tabs/report_tab.dart';
 
-class AdminScreen extends StatelessWidget {
+// Import các màn hình con
+// import 'tabs/user_management_tab.dart'; // Tab Quản lý người dùng (Đã làm ở câu trước)
+import 'package:my_app/views/admin/request_management_screen.dart'; // Tab Quản lý yêu cầu (Vừa tạo ở trên)
+class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
 
   @override
+  State<AdminScreen> createState() => _AdminScreenState();
+}
+
+class _AdminScreenState extends State<AdminScreen> {
+  int _currentIndex = 0; // Tab mặc định là User Management
+
+  // Danh sách các trang tương ứng với BottomBar
+  final List<Widget> _pages = [
+     UserManagementTab(),       // Tab 0: Người dùng
+     RequestManagementScreen(), // Tab 1: Các đơn từ (Xe, Seller, Report)
+    const Center(child: Text("Màn hình Thống Kê (Đang phát triển)")), // Tab 2: Thống kê
+    const Center(child: Text("Màn hình Cấu Hình (Đang phát triển)")), // Tab 3: Cấu hình
+  ];
+
+  // Tiêu đề tương ứng cho AppBar
+  final List<String> _titles = [
+    "Quản lý Người dùng",
+    "Quản lý Yêu cầu & Duyệt",
+    "Thống kê Báo cáo",
+    "Cấu hình Hệ thống"
+  ];
+
+  @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text("ADMIN DASHBOARD"),
-          backgroundColor: Colors.blueGrey[900],
-          foregroundColor: Colors.white,
-          actions: [
-            // 1. NÚT GỬI THÔNG BÁO HỆ THỐNG (Mới thêm)
-            IconButton(
-              icon: const Icon(Icons.notifications_active),
-              tooltip: "Gửi thông báo hệ thống",
-              onPressed: () {
-                _showBroadcastDialog(context);
-              },
-            ),
-
-            // 2. NÚT SEED DATA (Đã thêm hộp thoại xác nhận an toàn)
-            IconButton(
-              icon: const Icon(Icons.cloud_upload_outlined),
-              tooltip: "Cập nhật dữ liệu mẫu",
-              onPressed: () {
-                _confirmSeedData(context);
-              },
-            ),
-
-            // 3. NÚT ĐĂNG XUẤT (Giữ nguyên)
-            IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: "Đăng xuất",
-              onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-                if (context.mounted) {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    (route) => false,
-                  );
-                }
-              },
-            ),
-          ],
-          
-          bottom: TabBar(
-            indicatorColor: Colors.orange,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.grey,
-            tabs: [
-              // Tab 1: Duyệt xe (Có thể thêm Badge số lượng xe chờ duyệt)
-              const Tab(icon: Icon(Icons.directions_car), text: "Duyệt Xe"),
-              
-              // Tab 2: Nâng cấp Seller
-              const Tab(icon: Icon(Icons.verified_user), text: "Nâng cấp"),
-
-              // Tab 3: Khiếu nại
-              const Tab(icon: Icon(Icons.warning), text: "Khiếu nại"),
-            ],
+    return Scaffold(
+      // --- 1. APP BAR (Giữ nguyên các nút chức năng) ---
+      appBar: AppBar(
+        title: Text(_titles[_currentIndex]),
+        backgroundColor: Colors.blueGrey[900],
+        foregroundColor: Colors.white,
+        actions: [
+          // Nút thông báo
+          IconButton(
+            icon: const Icon(Icons.notifications_active),
+            tooltip: "Gửi thông báo hệ thống",
+            onPressed: () => _showBroadcastDialog(context),
           ),
-        ),
-        body: const TabBarView(
-          children: [
-            VehicleApprovalTab(),
-            SellerApprovalTab(),
-            ReportTab(),
-          ],
-        ),
+          // Nút Data Seeder
+          IconButton(
+            icon: const Icon(Icons.cloud_upload_outlined),
+            tooltip: "Cập nhật dữ liệu mẫu",
+            onPressed: () => _confirmSeedData(context),
+          ),
+          // Nút Đăng xuất
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: "Đăng xuất",
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            },
+          ),
+        ],
+      ),
+
+      // --- 2. BODY (Hiển thị theo index) ---
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
+
+      // --- 3. BOTTOM NAVIGATION BAR (Thanh điều hướng dưới) ---
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() => _currentIndex = index);
+        },
+        type: BottomNavigationBarType.fixed, // Quan trọng để hiện đủ 4 tab
+        selectedItemColor: Colors.blueGrey[900],
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people),
+            label: "Người dùng",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.assignment_turned_in), // Icon checklist
+            label: "Xét duyệt",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bar_chart),
+            label: "Thống kê",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: "Cấu hình",
+          ),
+        ],
       ),
     );
   }
 
-  // --- HÀM 1: HỘP THOẠI GỬI THÔNG BÁO HỆ THỐNG ---
+  // --- CÁC HÀM PHỤ TRỢ (Giữ nguyên logic cũ của bạn) ---
+
   void _showBroadcastDialog(BuildContext context) {
     final titleController = TextEditingController();
     final bodyController = TextEditingController();
-
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -95,87 +122,51 @@ class AdminScreen extends StatelessWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("Thông báo này sẽ gửi đến TẤT CẢ người dùng.", style: TextStyle(color: Colors.red, fontSize: 12)),
-            const SizedBox(height: 10),
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(labelText: "Tiêu đề", border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: bodyController,
-              decoration: const InputDecoration(labelText: "Nội dung", border: OutlineInputBorder()),
-              maxLines: 3,
-            ),
+            const Text("Gửi đến TOÀN BỘ user.", style: TextStyle(color: Colors.red, fontSize: 12)),
+            TextField(controller: titleController, decoration: const InputDecoration(labelText: "Tiêu đề")),
+            TextField(controller: bodyController, decoration: const InputDecoration(labelText: "Nội dung")),
           ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Hủy")),
           ElevatedButton(
             onPressed: () async {
-              if (titleController.text.isEmpty || bodyController.text.isEmpty) return;
+              if (titleController.text.isEmpty) return;
               Navigator.pop(ctx);
-
-              // Giả lập gửi cho tất cả user (Thực tế nên dùng Cloud Functions)
-              // Ở đây mình demo gửi 1 thông báo dạng "system" vào DB
-              // Bạn có thể mở rộng logic để loop qua user list nếu muốn
-              
-              // Demo: Gửi cho chính Admin để test trước
               final adminId = FirebaseAuth.instance.currentUser!.uid;
-              
               await NotificationService().sendNotification(
-                receiverId: adminId, 
-                title: "[HỆ THỐNG] ${titleController.text}", 
-                body: bodyController.text, 
+                receiverId: adminId, // Demo gửi cho admin trước
+                title: "[HỆ THỐNG] ${titleController.text}",
+                body: bodyController.text,
                 type: "system"
               );
-
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Đã gửi thông báo!")));
-              }
+              if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Đã gửi!")));
             },
-            child: const Text("Gửi ngay"),
-          ),
+            child: const Text("Gửi"),
+          )
         ],
       ),
     );
   }
 
-  // --- HÀM 2: HỘP THOẠI XÁC NHẬN SEED DATA ---
   void _confirmSeedData(BuildContext context) {
+    // Logic DataSeeder cũ của bạn...
+    // (Giữ nguyên code alert dialog ở đây)
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Xác nhận cập nhật?"),
-        content: const Text("Hành động này sẽ thêm dữ liệu mẫu vào Database. Bạn có chắc chắn không?"),
+        title: const Text("Reset Dữ liệu?"),
+        content: const Text("Thêm dữ liệu mẫu vào Firestore."),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Hủy")),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            onPressed: () async {
-              Navigator.pop(ctx); // Đóng dialog
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Đang đồng bộ dữ liệu...")),
-              );
-
-              try {
-                await DataSeeder().seedData();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Thành công!"), backgroundColor: Colors.green),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Lỗi: $e"), backgroundColor: Colors.red),
-                  );
-                }
-              }
-            },
-            child: const Text("Đồng ý", style: TextStyle(color: Colors.white)),
-          ),
+           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Hủy")),
+           ElevatedButton(
+             onPressed: () async {
+               Navigator.pop(ctx);
+               await DataSeeder().seedData();
+               if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Done!")));
+             }, 
+             child: const Text("Đồng ý")
+           )
         ],
       ),
     );

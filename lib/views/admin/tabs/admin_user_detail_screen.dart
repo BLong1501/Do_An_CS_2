@@ -91,6 +91,53 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
       }
     }
   }
+  // 4. LOGIC XÓA TÀI KHOẢN (Xóa dữ liệu Firestore)
+  Future<void> _deleteUserPermanently() async {
+    // Cảnh báo cực mạnh
+    bool? confirm = await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("XÓA VĨNH VIỄN USER?", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        content: const Text(
+          "Hành động này sẽ xóa toàn bộ thông tin cá nhân của người dùng khỏi cơ sở dữ liệu.\n\n"
+          "Lưu ý: User vẫn tồn tại trong Authentication (cần xóa thủ công trên web Firebase) nhưng họ sẽ không thể đăng nhập vào App được nữa vì mất dữ liệu.",
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Hủy")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Xác nhận XÓA", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 1. Xóa trong Collection 'users'
+      await FirebaseFirestore.instance.collection('users').doc(widget.userId).delete();
+      
+      // 2. (Tùy chọn) Xóa các bài đăng xe của user này để sạch data
+      var vehicles = await FirebaseFirestore.instance.collection('vehicles').where('ownerId', isEqualTo: widget.userId).get();
+      for (var doc in vehicles.docs) {
+        await doc.reference.delete();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Đã xóa dữ liệu người dùng thành công!")));
+        Navigator.pop(context); // Thoát khỏi màn hình chi tiết
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi xóa: $e")));
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   // --- 3. LOGIC SỬA THÔNG TIN CÁ NHÂN ---
   void _showEditProfileDialog(Map<String, dynamic> userData) {
@@ -299,8 +346,29 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                       ],
                     )
                   ],
-                )
+                ),
+                // ... (Đoạn code các nút Cấm/Khóa cũ) ...
+                    
+                    const SizedBox(height: 20),
+                    const Divider(thickness: 2, color: Colors.red),
+                    
+                    // NÚT XÓA VĨNH VIỄN
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton.icon(
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                        ),
+                        icon: const Icon(Icons.delete_forever, size: 28),
+                        label: const Text("XÓA TÀI KHOẢN VĨNH VIỄN", style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: _deleteUserPermanently,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                
               ],
+              
             ),
           );
         },

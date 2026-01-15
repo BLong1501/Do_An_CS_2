@@ -216,8 +216,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     borderRadius: BorderRadius.all(Radius.circular(20)),
                   ),
                 ),
-                validator: (value) =>
-                    !value!.contains('@') ? "Email không hợp lệ" : null,
+                validator: (value) {
+                  if (value!.isEmpty) return "Vui lòng nhập email";
+                  // Regex chuẩn cho email
+                  bool emailValid = RegExp(
+                    r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
+                  ).hasMatch(value);
+                  if (!emailValid) return "Email không đúng định dạng";
+                  return null;
+                },
               ),
               const SizedBox(height: 15),
 

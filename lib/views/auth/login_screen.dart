@@ -145,8 +145,8 @@ class _LoginScreenState extends State<LoginScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: const <Color>[
-                Color.fromARGB(255, 195, 204, 211), // xám xanh nhạt
-                Color(0xFF1E88E5), // xanh dương đậm
+                Color(0xFF5D3FD3), // xám xanh nhạt
+                Color(0xFFC51162), // xanh dương đậm
               ],
               // transform xoay gradient 45 độ
               transform: const GradientRotation(0.25 * 3.1416), // ~45°
@@ -167,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w900,
-                  color: Colors.blue[800],
+                  color: const Color.fromARGB(255, 114, 17, 99),
                 ),
               ),
               const SizedBox(height: 30),
@@ -178,18 +178,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   labelText: 'Email',
-                  labelStyle: TextStyle(color: Colors.blue[300], fontSize: 16),
-                  prefixIcon: Icon(Icons.email, color: Colors.blue[300]),
+                  labelStyle: TextStyle(color: Color.fromARGB(255, 230, 143, 182), fontSize: 16),
+                  prefixIcon: Icon(Icons.email, color: Color.fromARGB(255, 173, 50, 105)),
                   border: const UnderlineInputBorder(),
                   focusedBorder: UnderlineInputBorder(
                     borderSide: BorderSide(
-                      color: Colors.blue.shade300,
+                      color: Color.fromARGB(255, 173, 50, 105),
                       width: 2.0,
                     ),
                   ),
                   enabledBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(
-                      color: Color.fromARGB(255, 149, 204, 243),
+                      color:Color.fromARGB(255, 173, 50, 105),
                     ),
                   ),
                 ),
@@ -202,18 +202,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   labelText: 'Mật khẩu',
-                  labelStyle: TextStyle(color: Colors.blue[300], fontSize: 16),
-                  prefixIcon: Icon(Icons.lock, color: Colors.blue[300]),
+                  labelStyle: TextStyle(color: Color.fromARGB(255, 230, 143, 182), fontSize: 16),
+                  prefixIcon: Icon(Icons.lock, color: Color.fromARGB(255, 173, 50, 105)),
                   border: const UnderlineInputBorder(),
                   focusedBorder: UnderlineInputBorder(
                     borderSide: BorderSide(
-                      color: Colors.blue.shade300,
+                       color: Color.fromARGB(255, 173, 50, 105),
                       width: 2.0,
                     ),
                   ),
                   enabledBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(
-                      color: Color.fromARGB(255, 149, 204, 243),
+                      color:Color.fromARGB(255, 173, 50, 105),
                     ),
                   ),
                   suffixIcon: IconButton(
@@ -240,7 +240,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     children: [
                       Checkbox(
-                        activeColor: Colors.blue[300],
+                        activeColor: .fromARGB(255, 191, 95, 138),
                         value: _rememberMe,
                         onChanged: (value) {
                           setState(() {
@@ -257,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ), // Gọi hàm hiển thị dialog
                     child: Text(
                       "Quên mật khẩu?",
-                      style: TextStyle(color: Colors.blue[400]),
+                      style: TextStyle(color: Color.fromARGB(255, 173, 50, 105)),
                     ),
                   ),
                 ],
@@ -270,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   : ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size.fromHeight(50),
-                        backgroundColor: const Color.fromARGB(255, 39, 88, 194),
+                        backgroundColor: const Color.fromARGB(255, 100, 13, 77),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -358,7 +358,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text(
                       "Đăng ký ngay",
                       style: TextStyle(
-                        color: const Color.fromARGB(255, 23, 108, 182),
+                        color: const Color.fromARGB(255, 104, 8, 88),
                         fontWeight: FontWeight.bold,
                       ),
                     ),

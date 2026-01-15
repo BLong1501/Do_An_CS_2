@@ -4,21 +4,21 @@ import 'package:flutter/material.dart';
 class ChatProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Hàm tạo ID phòng chat (giữ nguyên như cũ)
+  // Hàm tạo ID phòng chat (Giữ nguyên)
   String getChatRoomId(String userId, String otherUserId, String vehicleId) {
     List<String> ids = [userId, otherUserId];
-    ids.sort(); // Sắp xếp để ID luôn giống nhau dù ai là người bắt đầu
+    ids.sort(); 
     return "${ids[0]}_${ids[1]}_$vehicleId";
   }
 
-  // CẬP NHẬT HÀM GỬI TIN NHẮN QUAN TRỌNG NÀY
+  // CẬP NHẬT HÀM GỬI TIN NHẮN
   Future<void> sendMessage({
     required String chatRoomId,
     required String message,
     required String senderId,
     required String receiverId,
-    required String vehicleId, // Cần thêm cái này để biết đang chat về xe nào
-    required String vehicleTitle, // Tiêu đề xe để hiển thị ở danh sách
+    required String vehicleId,
+    required String vehicleTitle,
     String? receiverName,
     String? receiverAvatar,
   }) async {
@@ -29,29 +29,32 @@ class ChatProvider extends ChangeNotifier {
       "senderId": senderId,
       "receiverId": receiverId,
       "message": message,
-      "timestamp": timestamp,
+      "timestamp": timestamp, // Dùng cho bong bóng chat
       "isRead": false,
       "type": "text",
     };
 
-    // 2. Lưu tin nhắn vào Sub-collection 'messages'
+    // 2. Lưu tin nhắn vào Sub-collection
     await _firestore
         .collection('chat_rooms')
         .doc(chatRoomId)
         .collection('messages')
         .add(messageData);
 
-    // 3. QUAN TRỌNG: Cập nhật thông tin phòng chat (Để hiện trong ChatList)
-    // Dùng set với SetOptions(merge: true) để nếu phòng chưa có thì tạo mới, có rồi thì cập nhật
+    // 3. Cập nhật thông tin phòng chat
     Map<String, dynamic> chatRoomData = {
       "chatRoomId": chatRoomId,
-      "participants": [senderId, receiverId], // Mảng chứa ID 2 người để query
+      
+      // 👇 QUAN TRỌNG: Query bên UI đang dùng field 'users' này
+      "users": [senderId, receiverId], 
+      
       "lastMessage": message,
-      "lastTime": timestamp,
+      
+      // 👇 SỬA Ở ĐÂY: Đổi 'lastTime' thành 'lastMessageTime' để khớp với UI
+      "lastMessageTime": timestamp, 
+      
       "vehicleId": vehicleId,
       "vehicleTitle": vehicleTitle,
-      // Lưu thêm info người nhận để hiển thị nhanh nếu cần (tùy chọn)
-      "users": [senderId, receiverId] 
     };
 
     await _firestore

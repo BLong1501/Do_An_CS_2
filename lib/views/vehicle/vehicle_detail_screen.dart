@@ -345,6 +345,8 @@ class VehicleDetailScreen extends StatelessWidget {
       ),
       
       // BOTTOM NAVIGATION BAR: NÚT LIÊN HỆ
+      // BOTTOM NAVIGATION BAR: NÚT LIÊN HỆ
+      // BOTTOM NAVIGATION BAR: NÚT LIÊN HỆ
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -365,44 +367,102 @@ class VehicleDetailScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-          onPressed: () { 
-             // 1. Kiểm tra đăng nhập
-             if (currentUserId == null) {
-               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng đăng nhập để chat!")));
-               return;
-             }
-             
-             // 2. Không cho tự chat với chính mình
-             if (isOwner) {
-               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Đây là bài đăng của bạn!")));
-               return;
-             }
+          // Trong VehicleDetailScreen.dart, phần onPressed của nút Liên hệ:
 
-             // 3. Tạo ID phòng chat
-             final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-             final chatRoomId = chatProvider.getChatRoomId(currentUserId, vehicle.ownerId, vehicle.id);
+onPressed: () async {
+  if (currentUserId == null) { /* ... Giữ nguyên logic check login ... */ return; }
+  if (isOwner) { /* ... Giữ nguyên logic check owner ... */ return; }
 
-             // 4. Lấy tên người bán
-             String sellerDisplayName = "Người bán";
-             if (vehicle.storeName != null && vehicle.storeName!.isNotEmpty) {
-               sellerDisplayName = vehicle.storeName!;
-             }
+  // Hiển thị loading
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (c) => const Center(child: CircularProgressIndicator()),
+  );
 
-             // 5. Chuyển sang màn hình Chat
-             Navigator.push(
-               context,
-               MaterialPageRoute(
-                 builder: (_) => ChatDetailScreen(
-                   chatRoomId: chatRoomId,
-                   receiverId: vehicle.ownerId,
-                   receiverName: sellerDisplayName,
-                   vehicleId: vehicle.id,     
-                   vehicleTitle: vehicle.title,
-                   receiverAvatar: null, 
-                 ),
-               ),
-             );
-          },
+  try {
+    String targetChatRoomId;
+    String targetVehicleId = vehicle.id; // Mặc định là ID xe hiện tại
+    String targetVehicleTitle = vehicle.title; // Mặc định là tên xe hiện tại
+
+    // 1. TÌM KIẾM PHÒNG CHAT CŨ (QUAN TRỌNG)
+    // Quét xem mình và người bán này đã từng chat chưa
+    final QuerySnapshot query = await FirebaseFirestore.instance
+        .collection('chat_rooms')
+        .where('users', arrayContains: currentUserId)
+        .get();
+
+    DocumentSnapshot? existingRoom;
+
+    for (var doc in query.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final List<dynamic> users = data['users'] ?? [];
+      // Nếu tìm thấy phòng có chứa ID người bán
+      if (users.contains(vehicle.ownerId)) {
+        existingRoom = doc;
+        break; // Dừng lại ngay khi tìm thấy phòng gần nhất
+      }
+    }
+
+    // 2. XỬ LÝ LOGIC GỘP PHÒNG
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+
+    if (existingRoom != null) {
+      // --- TRƯỜNG HỢP ĐÃ TỪNG CHAT ---
+      // Dùng lại ID phòng cũ để không tạo ra 2 dòng chat
+      targetChatRoomId = existingRoom.id;
+      
+      // Mẹo: Nếu bạn muốn giữ ngữ cảnh là chiếc xe mới, bạn có thể cập nhật lại title ở đây
+      // Nhưng ID phòng vẫn giữ nguyên -> Tin nhắn sẽ nối tiếp nhau
+    } else {
+      // --- TRƯỜNG HỢP CHƯA TỪNG CHAT ---
+      // Tạo phòng mới. 
+      // Mẹo: Nếu bạn muốn "Messenger Style" triệt để, có thể dùng luôn ID là 'general_inquiry' cho mọi trường hợp
+      // Nhưng code dưới đây sẽ tạo theo xe cho lần đầu, các lần sau sẽ tự gộp vào đây.
+      targetChatRoomId = chatProvider.getChatRoomId(
+          currentUserId!, vehicle.ownerId, vehicle.id);
+    }
+    
+    // 3. LẤY THÔNG TIN NGƯỜI BÁN (Code cũ của bạn, giữ nguyên logic lấy Avatar/Tên)
+    String finalReceiverName = "Người bán";
+    String? finalReceiverAvatar;
+    // ... (Code lấy dữ liệu từ Firebase Users mà tôi đã gửi ở câu trả lời trước) ...
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(vehicle.ownerId).get();
+    if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        if (isStorePost) {
+            finalReceiverName = vehicle.storeName ?? userData['storeName'] ?? "Cửa hàng";
+            finalReceiverAvatar = userData['storeAva'];
+        } else {
+            finalReceiverName = userData['displayName'] ?? "Người dùng";
+            finalReceiverAvatar = userData['photoUrl'];
+        }
+    }
+
+    // Tắt loading
+    if (context.mounted) Navigator.pop(context);
+
+    // 4. CHUYỂN TRANG
+    if (context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatDetailScreen(
+            chatRoomId: targetChatRoomId, // ID đã được xử lý gộp
+            receiverId: vehicle.ownerId,
+            receiverName: finalReceiverName,
+            receiverAvatar: finalReceiverAvatar,
+            vehicleId: targetVehicleId,     
+            vehicleTitle: targetVehicleTitle,
+          ),
+        ),
+      );
+    }
+  } catch (e) {
+    if (context.mounted) Navigator.pop(context);
+    print("Lỗi: $e");
+  }
+},
           child: const Text(
             "LIÊN HỆ NGAY",
             style: TextStyle(

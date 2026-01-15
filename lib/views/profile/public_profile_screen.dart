@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:my_app/providers/chat_provider.dart';
+import 'package:my_app/views/chat/chat_detail_screen.dart';
+import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
 import '../../models/vehicle_model.dart';
 import '../widgets/vehicle_card.dart';
@@ -283,7 +286,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
         child: Column(
           children: [
             // --- PHẦN HEADER THÔNG TIN ---
-           // --- PHẦN HEADER THÔNG TIN ---
+            // --- PHẦN HEADER THÔNG TIN ---
             Container(
               color: Colors.white,
               padding: const EdgeInsets.all(20),
@@ -293,26 +296,39 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: isStore ? Colors.purple : Colors.grey[300]!, width: 3)
+                      border: Border.all(
+                        color: isStore ? Colors.purple : Colors.grey[300]!,
+                        width: 3,
+                      ),
                     ),
                     child: CircleAvatar(
                       radius: 50,
                       backgroundColor: Colors.grey[200],
-                      backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
+                      backgroundImage:
+                          (avatarUrl != null && avatarUrl.isNotEmpty)
+                          ? NetworkImage(avatarUrl)
+                          : null,
                       child: (avatarUrl == null || avatarUrl.isEmpty)
-                          ? Icon(isStore ? Icons.store : Icons.person, size: 50, color: Colors.grey)
+                          ? Icon(
+                              isStore ? Icons.store : Icons.person,
+                              size: 50,
+                              color: Colors.grey,
+                            )
                           : null,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  
+
                   // 2. Tên hiển thị
                   Text(
                     displayName,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
                     textAlign: TextAlign.center,
                   ),
-                  
+
                   // 3. Badge (Uy tín / Cá nhân)
                   if (isStore) ...[
                     const SizedBox(height: 5),
@@ -320,9 +336,22 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.purple, borderRadius: BorderRadius.circular(5)),
-                          child: const Text("Đối tác uy tín", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.purple,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: const Text(
+                            "Đối tác uy tín",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -332,23 +361,38 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.location_on, size: 14, color: Colors.grey),
-                            Text(" ${_sellerUser!.address}", style: const TextStyle(color: Colors.grey)),
+                            const Icon(
+                              Icons.location_on,
+                              size: 14,
+                              color: Colors.grey,
+                            ),
+                            Text(
+                              " ${_sellerUser!.address}",
+                              style: const TextStyle(color: Colors.grey),
+                            ),
                           ],
                         ),
                       ),
                   ] else ...[
-                     const Text("Thành viên cá nhân", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    const Text(
+                      "Thành viên cá nhân",
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
                   ],
 
                   const SizedBox(height: 20),
-                  
+
                   // 4. THỐNG KÊ (Follower / Following)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       _buildStat("Người theo dõi", followerCount),
-                      Container(height: 30, width: 1, color: Colors.grey[300], margin: const EdgeInsets.symmetric(horizontal: 30)),
+                      Container(
+                        height: 30,
+                        width: 1,
+                        color: Colors.grey[300],
+                        margin: const EdgeInsets.symmetric(horizontal: 30),
+                      ),
                       _buildStat("Đang theo dõi", _sellerUser!.following),
                     ],
                   ),
@@ -358,15 +402,19 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                   // Logic hiển thị:
                   // - Không hiện nếu là chính mình (_currentUserId == widget.userId)
                   // - Không hiện nếu đối phương là Admin (_sellerUser!.role == 'admin')
-                  
-                  if (_currentUserId != widget.userId) ...[ // Nếu không phải chính mình
+                  if (_currentUserId != widget.userId) ...[
+                    // Nếu không phải chính mình
                     if (_sellerUser!.role == 'admin') ...[
                       // Nếu xem Profile Admin -> Hiện dòng chữ thay thế
                       const Padding(
                         padding: EdgeInsets.all(10.0),
                         child: Text(
                           "Tài khoản Quản trị viên",
-                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
                         ),
                       ),
                     ] else ...[
@@ -377,33 +425,184 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                             child: ElevatedButton(
                               onPressed: _toggleFollow,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: _isFollowing ? Colors.grey[300] : (isStore ? Colors.purple : Colors.blue),
-                                foregroundColor: _isFollowing ? Colors.black : Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                backgroundColor: _isFollowing
+                                    ? Colors.grey[300]
+                                    : (isStore ? Colors.purple : Colors.blue),
+                                foregroundColor: _isFollowing
+                                    ? Colors.black
+                                    : Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                                 elevation: _isFollowing ? 0 : 2,
                               ),
                               child: Text(
                                 _isFollowing ? "Đang theo dõi" : "Theo dõi",
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(width: 10),
+
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: () { /* Gọi điện */ },
-                              icon: const Icon(Icons.phone, size: 18),
-                              label: const Text("Liên hệ"),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                side: const BorderSide(
+                                  color: Colors.blue,
+                                ), // Thêm viền màu cho đẹp
                               ),
+                              icon: const Icon(
+                                Icons.message,
+                                size: 18,
+                                color: Colors.blue,
+                              ),
+                              label: const Text(
+                                "Liên hệ",
+                                style: TextStyle(color: Colors.blue),
+                              ),
+                              onPressed: () async {
+                                // 1. Kiểm tra đăng nhập & chính chủ (Giữ nguyên)
+                                if (_currentUserId.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Vui lòng đăng nhập!"),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (_currentUserId == widget.userId) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Đây là trang của bạn!"),
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                // Hiển thị loading để người dùng biết đang xử lý
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (c) => const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+
+                                try {
+                                  // 2. TÌM KIẾM PHÒNG CHAT CŨ
+                                  // Quét tất cả các phòng chat mà "TÔI" đang tham gia
+                                  // Lưu ý: Để query này hoạt động, cấu trúc chat_rooms trên Firestore cần có field 'users' là mảng chứa [uid1, uid2]
+                                  // Hoặc bạn có thể query theo cách đặt tên ID nếu biết quy luật, nhưng query field 'users' là chuẩn nhất.
+
+                                  final QuerySnapshot query =
+                                      await FirebaseFirestore.instance
+                                          .collection('chat_rooms')
+                                          .where(
+                                            'users',
+                                            arrayContains: _currentUserId,
+                                          )
+                                          .orderBy(
+                                            'lastMessageTime',
+                                            descending: true,
+                                          ) // Lấy tin nhắn mới nhất
+                                          .get();
+
+                                  DocumentSnapshot? existingRoom;
+
+                                  // Lọc thủ công ở phía client để tìm phòng chứa 'Người bán' (widget.userId)
+                                  for (var doc in query.docs) {
+                                    final data =
+                                        doc.data() as Map<String, dynamic>;
+                                    final List<dynamic> users =
+                                        data['users'] ?? [];
+
+                                    if (users.contains(widget.userId)) {
+                                      existingRoom = doc;
+                                      break; // Tìm thấy phòng gần nhất rồi, dừng lại
+                                    }
+                                  }
+
+                                  // Đóng loading dialog
+                                  Navigator.pop(context);
+
+                                  // 3. XÁC ĐỊNH DỮ LIỆU ĐỂ CHUYỂN MÀN HÌNH
+                                  String targetChatRoomId;
+                                  String targetVehicleId;
+                                  String targetVehicleTitle;
+
+                                  if (existingRoom != null) {
+                                    // --- TRƯỜNG HỢP A: ĐÃ TỪNG CHAT (Mở lại tin nhắn cũ) ---
+                                    final data =
+                                        existingRoom.data()
+                                            as Map<String, dynamic>;
+                                    targetChatRoomId = existingRoom.id;
+                                    targetVehicleId =
+                                        data['vehicleId'] ??
+                                        'unknown'; // Lấy ID xe từ lịch sử cũ
+                                    targetVehicleTitle =
+                                        data['vehicleTitle'] ?? 'Tin nhắn cũ';
+                                  } else {
+                                    // --- TRƯỜNG HỢP B: CHƯA TỪNG CHAT (Tạo phòng General mới) ---
+                                    const String generalTopicId =
+                                        'general_inquiry';
+                                    final chatProvider =
+                                        Provider.of<ChatProvider>(
+                                          context,
+                                          listen: false,
+                                        );
+
+                                    targetChatRoomId = chatProvider
+                                        .getChatRoomId(
+                                          _currentUserId,
+                                          widget.userId,
+                                          generalTopicId,
+                                        );
+                                    targetVehicleId = generalTopicId;
+                                    targetVehicleTitle = "Trao đổi chung";
+                                  }
+
+                                  // 4. CHUYỂN HƯỚNG
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ChatDetailScreen(
+                                        chatRoomId: targetChatRoomId,
+                                        receiverId: widget.userId,
+                                        receiverName:
+                                            displayName, // Biến displayName bạn đã có ở hàm build
+                                        vehicleId: targetVehicleId,
+                                        vehicleTitle: targetVehicleTitle,
+                                        receiverAvatar:
+                                            avatarUrl, // Biến avatarUrl bạn đã có ở hàm build
+                                      ),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  Navigator.pop(
+                                    context,
+                                  ); // Đóng loading nếu lỗi
+                                  print("Lỗi tìm phòng chat: $e");
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text("Lỗi: $e")),
+                                  );
+                                }
+                              },
                             ),
                           ),
                         ],
                       ),
-                    ]
+                    ],
                   ], // Kết thúc if
                 ],
               ),

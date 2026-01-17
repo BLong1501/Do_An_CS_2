@@ -124,29 +124,79 @@ class VehicleApprovalTab extends StatelessWidget {
     );
   }
 
-  // --- HÀM 1: XỬ LÝ DUYỆT BÀI VÀ GỬI THÔNG BÁO ---
+  
+  // --- HÀM DUYỆT BÀI VÀ GỬI THÔNG BÁO (PHIÊN BẢN HOÀN CHỈNH) ---
   Future<void> _handleApprove(BuildContext context, String vehicleId, String ownerId, String vehicleTitle) async {
     try {
-      // 1. Cập nhật Firestore: Chuyển status thành 'approved'
+      // 1. Cập nhật trạng thái xe thành 'approved'
       await FirebaseFirestore.instance.collection('vehicles').doc(vehicleId).update({
         'status': 'approved',
-        'approvedAt': Timestamp.now(), // Lưu thời gian duyệt để sắp xếp hiển thị
+        'approvedAt': Timestamp.now(),
       });
 
-      // 2. GỌI SERVICE GỬI THÔNG BÁO (Đây là bước bạn đang thiếu)
+      // 2. Gửi thông báo cho CHỦ XE (Owner)
       await NotificationService().sendNotification(
-        receiverId: ownerId, // Gửi đúng cho người sở hữu xe
+        receiverId: ownerId,
         title: "Tin đăng đã được duyệt ✅",
-        body: "Chiếc xe '$vehicleTitle' của bạn đã được duyệt và đang hiển thị trên sàn.",
+        body: "Chiếc xe '$vehicleTitle' của bạn đã được duyệt và hiển thị công khai.",
         type: "approved",
-        relatedId: vehicleId, // Để bấm vào thông báo thì mở xe đó ra
+        relatedId: vehicleId,
       );
 
+      // --- 3. GỬI THÔNG BÁO CHO FOLLOWERS (QUÉT CẢ 2 BẢNG) ---
+      
+      // A. Lấy thông tin chủ xe để lấy tên hiển thị
+      String ownerName = "Người bán";
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(ownerId).get();
+      
+      if (userDoc.exists) {
+        final data = userDoc.data() as Map<String, dynamic>;
+        // Ưu tiên lấy tên Shop, nếu không có thì lấy tên hiển thị
+        ownerName = (data['storeName'] != null && data['storeName'].toString().isNotEmpty)
+            ? data['storeName']
+            : (data['displayName'] ?? "Người dùng");
+      }
+
+      // B. Lấy danh sách Follower từ CẢ 2 NGUỒN (followers & store_followers)
+      // Điều này giải quyết trường hợp Seller nhưng chưa tạo Store
+      final List<QuerySnapshot> snapshots = await Future.wait([
+        FirebaseFirestore.instance.collection('users').doc(ownerId).collection('followers').get(),
+        FirebaseFirestore.instance.collection('users').doc(ownerId).collection('store_followers').get(),
+      ]);
+
+      // C. Gộp danh sách ID (Dùng Set để loại bỏ trùng lặp)
+      Set<String> followerIds = {};
+      for (var snap in snapshots) {
+        for (var doc in snap.docs) {
+          followerIds.add(doc.id);
+        }
+      }
+
+      // D. Gửi thông báo nếu có người theo dõi
+      if (followerIds.isNotEmpty) {
+        final List<Future> tasks = followerIds.map((uid) {
+          return NotificationService().sendNotification(
+            receiverId: uid,
+            title: "Tin mới từ $ownerName",
+            body: "Vừa đăng bán: $vehicleTitle",
+            type: "new_post_following", // Khớp với NotificationScreen
+            relatedId: vehicleId,
+          );
+        }).toList();
+
+        await Future.wait(tasks);
+      }
+
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Đã duyệt và gửi thông báo!")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Đã duyệt và gửi thông báo thành công!"))
+        );
       }
     } catch (e) {
       print("Lỗi duyệt bài: $e");
+      if (context.mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi: $e")));
+      }
     }
   }
 

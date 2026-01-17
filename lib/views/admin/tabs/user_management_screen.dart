@@ -58,7 +58,7 @@ class _UserManagementTabState extends State<UserManagementTab> with SingleTicker
         'displayName': name,
         'phoneNumber': phone,    // <-- Lưu SĐT
         'address': address,      // <-- Lưu Địa chỉ
-        'photoUrl': "",
+        'photoUrl': null,
         'role': role,
         'createdAt': FieldValue.serverTimestamp(),
         'isBanned': false,
@@ -278,9 +278,13 @@ class _UserManagementTabState extends State<UserManagementTab> with SingleTicker
                    Navigator.push(context, MaterialPageRoute(builder: (_) => AdminUserDetailScreen(userId: userId)));
                 },
                 leading: CircleAvatar(
-                  backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
+                 backgroundImage: (photoUrl != null && photoUrl.isNotEmpty) 
+      ? NetworkImage(photoUrl) 
+      : null,
                   backgroundColor: Colors.blueGrey,
-                  child: photoUrl == null ? const Icon(Icons.person, color: Colors.white) : null,
+                  child: (photoUrl == null || photoUrl.isEmpty) 
+      ? const Icon(Icons.person, color: Colors.white) 
+      : null,
                 ),
                 title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
                 subtitle: Text(email),

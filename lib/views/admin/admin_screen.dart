@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:my_app/services/data_seeder.dart';
 import 'package:my_app/services/notification_service.dart';
+import 'package:my_app/views/admin/tabs/admin_stats_screen.dart';
 import 'package:my_app/views/admin/tabs/user_management_screen.dart';
 import '../auth/login_screen.dart';
 
@@ -22,8 +23,9 @@ class _AdminScreenState extends State<AdminScreen> {
   final List<Widget> _pages = [
      UserManagementTab(),       // Tab 0: Người dùng
      RequestManagementScreen(), // Tab 1: Các đơn từ (Xe, Seller, Report)
-    const Center(child: Text("Màn hình Thống Kê (Đang phát triển)")), // Tab 2: Thống kê
-    const Center(child: Text("Màn hình Cấu Hình (Đang phát triển)")), // Tab 3: Cấu hình
+     AdminStatsScreen(),        // Tab 2: Thống kê
+    //  Center(child: Text("Màn hình Cấu Hình (Đang phát triển)")),
+     Center(child: Text("Màn hình Cấu Hình (Đang phát triển)")), // Tab 3: Cấu hình
   ];
 
   // Tiêu đề tương ứng cho AppBar

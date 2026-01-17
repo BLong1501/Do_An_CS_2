@@ -220,11 +220,19 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                 // 1. HEADER PROFILE (Avatar + Tên)
                 // ... (Giữ nguyên code UI phần Header)
                  CircleAvatar(
-                  radius: 50,
-                  backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
-                  backgroundColor: Colors.grey[300],
-                  child: photoUrl == null ? const Icon(Icons.person, size: 50, color: Colors.grey) : null,
-                ),
+  radius: 50,
+  // SỬA LẠI DÒNG NÀY: Phải khác null VÀ không được rỗng
+  backgroundImage: (photoUrl != null && photoUrl.isNotEmpty) 
+      ? NetworkImage(photoUrl) 
+      : null,
+  
+  backgroundColor: Colors.grey[300],
+  
+  // SỬA LẠI DÒNG NÀY: Nếu null HOẶC rỗng thì hiện Icon
+  child: (photoUrl == null || photoUrl.isEmpty) 
+      ? const Icon(Icons.person, size: 50, color: Colors.grey) 
+      : null,
+),
                 const SizedBox(height: 15),
                 Text(name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                 Text(email, style: const TextStyle(color: Colors.grey)),

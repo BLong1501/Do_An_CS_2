@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 class ChatProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Hàm tạo ID phòng chat (Giữ nguyên)
+  // Hàm tạo ID phòng chat
   String getChatRoomId(String userId, String otherUserId, String vehicleId) {
     List<String> ids = [userId, otherUserId];
     ids.sort(); 
     return "${ids[0]}_${ids[1]}_$vehicleId";
   }
 
-  // CẬP NHẬT HÀM GỬI TIN NHẮN
+  // --- HÀM GỬI TIN NHẮN (ĐÃ SỬA LẠI TÊN TRƯỜNG) ---
   Future<void> sendMessage({
     required String chatRoomId,
     required String message,
@@ -24,34 +24,36 @@ class ChatProvider extends ChangeNotifier {
   }) async {
     final Timestamp timestamp = Timestamp.now();
 
-    // 1. Tạo model tin nhắn
+    // 1. Lưu tin nhắn vào Sub-collection (Giữ nguyên)
     Map<String, dynamic> messageData = {
       "senderId": senderId,
       "receiverId": receiverId,
       "message": message,
-      "timestamp": timestamp, // Dùng cho bong bóng chat
+      "timestamp": timestamp,
       "isRead": false,
       "type": "text",
     };
 
-    // 2. Lưu tin nhắn vào Sub-collection
     await _firestore
         .collection('chat_rooms')
         .doc(chatRoomId)
         .collection('messages')
         .add(messageData);
 
-    // 3. Cập nhật thông tin phòng chat
+    // 2. Cập nhật thông tin phòng chat (QUAN TRỌNG: PHẢI SỬA Ở ĐÂY)
     Map<String, dynamic> chatRoomData = {
       "chatRoomId": chatRoomId,
       
-      // 👇 QUAN TRỌNG: Query bên UI đang dùng field 'users' này
-      "users": [senderId, receiverId], 
+      // ✅ SỬA 1: Đổi thành 'participants' để khớp với ChatListScreen
+      "participants": [senderId, receiverId], 
       
+      // (Lưu thêm 'users' để dự phòng nếu sau này cần dùng, không thừa)
+      "users": [senderId, receiverId], 
+
       "lastMessage": message,
       
-      // 👇 SỬA Ở ĐÂY: Đổi 'lastTime' thành 'lastMessageTime' để khớp với UI
-      "lastMessageTime": timestamp, 
+      // ✅ SỬA 2: Đổi thành 'lastTime' để khớp với .orderBy('lastTime') bên UI
+      "lastTime": timestamp, 
       
       "vehicleId": vehicleId,
       "vehicleTitle": vehicleTitle,

@@ -119,7 +119,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       appBar: AppBar(
         title: const Text("Tất cả xe đang bán"),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        foregroundColor: const Color.fromARGB(255, 255, 255, 255),
         elevation: 0,
          flexibleSpace: Container(
           decoration: const BoxDecoration(

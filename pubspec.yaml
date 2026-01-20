@@ -46,6 +46,7 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   shared_preferences: ^2.2.2
+  flutter_facebook_auth: ^7.0.0 # Hoặc bản mới nhất
 
       # Để chọn ảnh từ máy
 

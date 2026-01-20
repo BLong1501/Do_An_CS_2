@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+// 👇 1. IMPORT THƯ VIỆN FACEBOOK AUTH
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart'; 
+
 import '../models/user_model.dart';
 import '../repositories/auth_repository.dart';
 import 'dart:io';
-import 'dart:async'; // Nhớ import cái này
+import 'dart:async';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -17,56 +20,124 @@ class AuthProvider extends ChangeNotifier {
   UserModel? get user => _user;
   StreamSubscription<DocumentSnapshot>? _userSubscription;
 
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance; // Khai báo biến này dùng cho tiện
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   Future<void> fetchUserData() async {
     _user = await _authRepo.getCurrentUserData();
     notifyListeners();
-    // 👇 Mẹo nhỏ: Sau khi fetch xong 1 lần, ta âm thầm bật lắng nghe luôn
-    // để sau này có thay đổi gì thì nó tự cập nhật.
     startListeningToUserData();
   }
+
   void startListeningToUserData() {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
 
-    // Hủy cái cũ nếu đang chạy để tránh trùng lặp
     _userSubscription?.cancel();
 
-    _userSubscription = FirebaseFirestore.instance
+    _userSubscription = _firestore
         .collection('users')
         .doc(currentUser.uid)
-        .snapshots() // Lắng nghe liên tục
+        .snapshots()
         .listen((snapshot) {
           if (snapshot.exists && snapshot.data() != null) {
             _user = UserModel.fromMap(snapshot.data() as Map<String, dynamic>, snapshot.id);
-            print("🔄 Data User cập nhật Realtime: Follow = ${_user?.followers}");
+            // print("🔄 Data User cập nhật Realtime: Follow = ${_user?.followers}");
             notifyListeners();
           }
         }, onError: (e) {
           print("Lỗi lắng nghe user: $e");
         });
   }
+
   Future<void> logout() async {
-    _userSubscription?.cancel(); // Hủy lắng nghe khi đăng xuất
+    _userSubscription?.cancel();
     _userSubscription = null;
-    
-    await FirebaseAuth.instance.signOut();
+    await _auth.signOut();
+    // 👇 Logout cả Facebook để lần sau nó hỏi lại tài khoản (tùy chọn)
+    await FacebookAuth.instance.logOut(); 
     _user = null; 
     notifyListeners();
   }
+// 1. Hàm cập nhật thông tin cá nhân
+  Future<void> updateUserProfile({
+    required String displayName,
+    required String phoneNumber,
+    required String address,
+    File? newAvatar, // Ảnh mới (nếu có)
+  }) async {
+    _isLoading = true;
+    notifyListeners();
 
-  // Future<void> logout() async {
-  //   await FirebaseAuth.instance.signOut();
-  //   _user = null; 
-  //   notifyListeners();
-  // }
+    try {
+      String uid = _user!.uid;
+      String? photoUrl = _user!.photoUrl;
 
-// Thêm tham số phone và address vào hàm
+      // Nếu có chọn ảnh mới -> Upload lên Storage
+      if (newAvatar != null) {
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('user_avatars/$uid.jpg');
+        await storageRef.putFile(newAvatar);
+        photoUrl = await storageRef.getDownloadURL();
+      }
+
+      // Cập nhật Firestore
+      await _firestore.collection('users').doc(uid).update({
+        'displayName': displayName,
+        'phoneNumber': phoneNumber,
+        'address': address,
+        'photoUrl': photoUrl,
+      });
+      
+      // Cập nhật User Auth (để hiển thị tên chuẩn ở các nơi khác)
+      await FirebaseAuth.instance.currentUser?.updateDisplayName(displayName);
+      if (photoUrl != null) {
+        await FirebaseAuth.instance.currentUser?.updatePhotoURL(photoUrl);
+      }
+
+      // Load lại dữ liệu mới nhất
+      await fetchUserData();
+
+    } catch (e) {
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // 2. Hàm đổi mật khẩu (Quan trọng)
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("Chưa đăng nhập");
+
+      final cred = EmailAuthProvider.credential(
+        email: user.email!,
+        password: currentPassword,
+      );
+
+      // Bắt buộc xác thực lại trước khi đổi mật khẩu (Bảo mật của Firebase)
+      await user.reauthenticateWithCredential(cred);
+
+      // Đổi mật khẩu
+      await user.updatePassword(newPassword);
+      
+    } catch (e) {
+      // Bắt lỗi sai mật khẩu cũ
+      if (e.toString().contains('wrong-password')) {
+        throw Exception("Mật khẩu cũ không chính xác");
+      }
+      rethrow;
+    }
+  }
+  // ... (Giữ nguyên hàm register) ...
   Future<void> register(String email, String password, String name, String phone, String address) async {
     _isLoading = true;
     notifyListeners();
     try {
-      // 1. Tạo tài khoản Authentication
-      UserCredential cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      UserCredential cred = await _auth.createUserWithEmailAndPassword(
         email: email, 
         password: password
       );
@@ -74,39 +145,35 @@ class AuthProvider extends ChangeNotifier {
       User? firebaseUser = cred.user;
       
       if (firebaseUser != null) {
-        // Cập nhật tên hiển thị cho Auth (để tiện hiển thị nhanh)
         await firebaseUser.updateDisplayName(name);
 
-        // 2. Tạo Model User đầy đủ thông tin
         UserModel newUser = UserModel(
           uid: firebaseUser.uid,
           email: email,
           displayName: name,
-          phoneNumber: phone, // Lưu số điện thoại
-          address: address,   // Lưu địa chỉ
-          role: UserRole.user, // Mặc định là user thường
+          phoneNumber: phone,
+          address: address,
+          role: UserRole.user,
           createdAt: DateTime.now(),
           lastLoginAt: DateTime.now(),
-          // Các trường khác để mặc định trong Model
         );
 
-        // 3. Lưu vào Firestore
-        await FirebaseFirestore.instance
+        await _firestore
             .collection('users')
             .doc(firebaseUser.uid)
             .set(newUser.toMap());
             
-        // 4. Cập nhật biến _user trong app
         _user = newUser;
       }
     } catch (e) {
-      rethrow; // Ném lỗi ra để màn hình Đăng ký bắt được và hiện thông báo
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
-  // Hàm tạo cửa hàng (Dành cho Seller, không cần duyệt)
+
+  // ... (Giữ nguyên hàm createStore) ...
   Future<void> createStore({
     required String storeName,
     required String address,
@@ -117,18 +184,12 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final uid = _user!.uid;
-      
-      // Cập nhật trực tiếp vào bảng users
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+      await _firestore.collection('users').doc(uid).update({
         'storeName': storeName,
-        'address': address, // Địa chỉ kinh doanh
+        'address': address,
         'description': description,
-        // Có thể thêm trường 'hasStore': true nếu muốn check nhanh
       });
-
-      // Load lại user để UI cập nhật ngay lập tức
       await fetchUserData();
-
     } catch (e) {
       rethrow;
     } finally {
@@ -136,11 +197,13 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // ... (Giữ nguyên hàm login thường) ...
   Future<void> login(String email, String password) async {
     _isLoading = true;
     notifyListeners();
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      await _auth.signInWithEmailAndPassword(
         email: email, 
         password: password
       );
@@ -152,34 +215,63 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  // Hàm gửi email reset mật khẩu (Logic thuần túy)
-  Future<void> sendPasswordReset(String email) async {
-    try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-    } catch (e) {
-      // Ném lỗi ra để bên UI bắt được và hiện thông báo
-      throw e;
-    }
-  }
-  // Hàm gửi yêu cầu nâng cấp lên Seller
-  Future<void> requestUpgradeToSeller() async {
-    if (_user == null) return;
-    
+
+  // 👇👇👇 2. THÊM HÀM ĐĂNG NHẬP FACEBOOK 👇👇👇
+  Future<void> loginWithFacebook() async {
     _isLoading = true;
     notifyListeners();
+    try {
+      // 1. Mở popup đăng nhập Facebook
+      final LoginResult result = await FacebookAuth.instance.login();
 
-    try { 
-      // 1. Cập nhật Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(_user!.uid)
-          .update({'isPendingUpgrade': true});
+      if (result.status == LoginStatus.success) {
+        // 2. Lấy Access Token
+        final AccessToken accessToken = result.accessToken!;
 
-      // 2. Cập nhật Model cục bộ (để UI đổi trạng thái ngay)
-      // Lưu ý: Copy biến _user cũ và thay đổi giá trị isPendingUpgrade
-      // (Cách này hơi thủ công, nhưng nhanh gọn)
-      await fetchUserData(); // Load lại data mới nhất từ server cho chắc ăn
-      
+        // 3. Tạo Credential để đăng nhập Firebase
+        final OAuthCredential credential = FacebookAuthProvider.credential(accessToken.tokenString);
+
+        // 4. Đăng nhập vào Firebase
+        UserCredential userCredential = await _auth.signInWithCredential(credential);
+        User? user = userCredential.user;
+
+        if (user != null) {
+          // 5. Kiểm tra xem user này đã có trong Firestore chưa
+          // Nếu chưa (lần đầu login bằng FB) thì tạo mới
+          DocumentSnapshot doc = await _firestore.collection('users').doc(user.uid).get();
+
+          if (!doc.exists) {
+            // Tạo User Model mới từ thông tin Facebook
+            // Lưu ý: Facebook có thể không trả về email hoặc sđt tùy quyền riêng tư
+            UserModel newUser = UserModel(
+              uid: user.uid,
+              email: user.email ?? "", 
+              displayName: user.displayName ?? "Người dùng Facebook",
+              phoneNumber: user.phoneNumber ?? "", // FB thường ko trả về sđt
+              address: "", // FB không có địa chỉ cụ thể
+              photoUrl: user.photoURL, // Lấy ảnh đại diện từ FB
+              role: UserRole.user,
+              createdAt: DateTime.now(),
+              lastLoginAt: DateTime.now(),
+            );
+
+            // Lưu vào Firestore
+            await _firestore.collection('users').doc(user.uid).set(newUser.toMap());
+            _user = newUser;
+          } else {
+            // Nếu đã có thì cập nhật thời gian đăng nhập (tùy chọn)
+            await _firestore.collection('users').doc(user.uid).update({
+              'lastLoginAt': FieldValue.serverTimestamp(),
+            });
+            // Load thông tin lên
+            await fetchUserData();
+          }
+        }
+      } else if (result.status == LoginStatus.cancelled) {
+        throw Exception("Bạn đã hủy đăng nhập Facebook.");
+      } else {
+        throw Exception("Lỗi đăng nhập Facebook: ${result.message}");
+      }
     } catch (e) {
       rethrow;
     } finally {
@@ -187,14 +279,39 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  // Hàm gửi form đăng ký Seller (Kèm ảnh CCCD)
+  // 👆👆👆 HẾT PHẦN THÊM MỚI 👆👆👆
+
+
+  Future<void> sendPasswordReset(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  // ... (Giữ nguyên các hàm requestUpgradeToSeller, submitSellerRequest) ...
+  Future<void> requestUpgradeToSeller() async {
+    if (_user == null) return;
+    _isLoading = true;
+    notifyListeners();
+    try { 
+      await _firestore.collection('users').doc(_user!.uid).update({'isPendingUpgrade': true});
+      await fetchUserData(); 
+    } catch (e) {
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+  
   Future<void> submitSellerRequest({
     required String fullName,
-    required String citizenId, // Số CCCD
+    required String citizenId,
     required String address,
-    // required String storeName,
-    required File? frontImage, // Ảnh mặt trước
-    required File? backImage,  // Ảnh mặt sau
+    required File? frontImage,
+    required File? backImage,
   }) async {
     if (_user == null) return;
     if (frontImage == null || backImage == null) throw Exception("Vui lòng chọn đủ ảnh CCCD");
@@ -204,43 +321,35 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       String uid = _user!.uid;
-
-      // 1. Upload ảnh lên Firebase Storage (SỬA ĐOẠN NÀY)
       final storageRef = FirebaseStorage.instance.ref().child('seller_requests/$uid');
       
-      // --- Upload mặt trước ---
       final frontRef = storageRef.child('front.jpg');
-      UploadTask uploadTaskFront = frontRef.putFile(frontImage); // Tạo task upload
-      TaskSnapshot snapshotFront = await uploadTaskFront; // Đợi task hoàn thành 100%
-      final String frontUrl = await snapshotFront.ref.getDownloadURL(); // Lấy link từ snapshot
+      UploadTask uploadTaskFront = frontRef.putFile(frontImage);
+      TaskSnapshot snapshotFront = await uploadTaskFront;
+      final String frontUrl = await snapshotFront.ref.getDownloadURL();
 
-      // --- Upload mặt sau ---
       final backRef = storageRef.child('back.jpg');
       UploadTask uploadTaskBack = backRef.putFile(backImage);
       TaskSnapshot snapshotBack = await uploadTaskBack;
       final String backUrl = await snapshotBack.ref.getDownloadURL();
 
-      // 2. Lưu thông tin vào Firestore (Collection riêng: seller_requests)
-      await FirebaseFirestore.instance.collection('seller_requests').doc(uid).set({
+      await _firestore.collection('seller_requests').doc(uid).set({
         'uid': uid,
         'email': _user!.email,
         'phoneNumber': _user!.phoneNumber,
         'fullName': fullName,
         'citizenId': citizenId,
         'address': address,
-        // 'storeName': storeName,
         'frontIdUrl': frontUrl,
         'backIdUrl': backUrl,
-        'status': 'pending', // Trạng thái chờ duyệt
+        'status': 'pending',
         'submittedAt': FieldValue.serverTimestamp(),
       });
 
-      // 3. Cập nhật trạng thái user để UI hiển thị "Đang chờ"
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+      await _firestore.collection('users').doc(uid).update({
         'isPendingUpgrade': true
       });
       
-      // Load lại user để cập nhật UI
       await fetchUserData();
 
     } catch (e) {

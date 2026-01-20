@@ -340,6 +340,63 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
 
               const SizedBox(height: 20),
+ Text(
+                  "Hoặc",
+                  style: TextStyle(fontSize: 16, color: const Color.fromARGB(255, 107, 106, 106)),
+                ),
+              const SizedBox(height: 10),
+              
+              // Nút Đăng nhập Facebook
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                  backgroundColor: const Color(0xFF1877F2), // Màu xanh Facebook chuẩn
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                icon: const Icon(Icons.facebook, color: Colors.white),
+                label: const Text(
+                  "Tiếp tục với Facebook",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                onPressed: () async {
+                  try {
+                    await authProvider.loginWithFacebook();
+                    
+                    // Logic điều hướng sau khi login thành công (giống hệt nút Login thường)
+                    // ... Copy đoạn logic if (user != null) ... navigator ở trên xuống đây
+                    // Hoặc tách ra thành hàm riêng để dùng chung.
+                    
+                    authProvider.startListeningToUserData(); // Đừng quên dòng này
+                    
+                     if (context.mounted) {
+                        final user = authProvider.user;
+                        if (user != null) {
+                           // ... Điều hướng ...
+                           Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(builder: (_) => const MainScreen()),
+                              (route) => false,
+                            );
+                        }
+                     }
+
+                  } catch (e) {
+                     ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Lỗi Facebook: $e"), backgroundColor: Colors.red),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 20),
+              
+               
+              
 
               // Chuyển sang đăng ký
               Row(

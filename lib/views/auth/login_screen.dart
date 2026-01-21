@@ -358,7 +358,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 icon: const Icon(Icons.facebook, color: Colors.white),
                 label: const Text(
                   "Tiếp tục với Facebook",
-                  style: TextStyle(
+                  style: TextStyle( 
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,

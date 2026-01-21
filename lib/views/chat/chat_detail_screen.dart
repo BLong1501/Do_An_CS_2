@@ -1,15 +1,18 @@
+import 'dart:io'; // Import for File
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart'; // Import Image Picker
+import 'package:my_app/views/profile/public_profile_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:my_app/providers/chat_provider.dart'; // Đảm bảo import đúng đường dẫn
+import 'package:my_app/providers/chat_provider.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String chatRoomId;
   final String receiverName;
   final String receiverId;
   final String vehicleTitle;
-  final String vehicleId; // 1. Đã thêm tham số này để lưu vào DB
+  final String vehicleId;
   final String? receiverAvatar;
 
   const ChatDetailScreen({
@@ -18,7 +21,7 @@ class ChatDetailScreen extends StatefulWidget {
     required this.receiverName,
     required this.receiverId,
     required this.vehicleTitle,
-    required this.vehicleId, // Bắt buộc phải có
+    required this.vehicleId,
     required this.receiverAvatar,
   });
 
@@ -29,6 +32,7 @@ class ChatDetailScreen extends StatefulWidget {
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _msgController = TextEditingController();
   final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+  bool _isUploading = false; // To show loading state
 
   @override
   void dispose() {
@@ -36,36 +40,69 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     super.dispose();
   }
 
-  // Hàm xử lý gửi tin nhắn
+  // --- 1. Handle Send Text ---
   void _handleSend() async {
-    if (_msgController.text.trim().isEmpty) return; // 2. Sửa _messageController thành _msgController
+    if (_msgController.text.trim().isEmpty) return;
 
     final String msg = _msgController.text.trim();
     _msgController.clear();
 
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
 
-    // Gọi provider để lưu tin nhắn và tạo phòng chat
     await chatProvider.sendMessage(
       chatRoomId: widget.chatRoomId,
       message: msg,
       senderId: currentUserId,
       receiverId: widget.receiverId,
-      vehicleId: widget.vehicleId, 
+      vehicleId: widget.vehicleId,
       vehicleTitle: widget.vehicleTitle,
       receiverName: widget.receiverName,
+      type: 'text', // Explicitly mark as text
     );
+  }
+
+  // --- 2. Handle Pick & Send Image ---
+  void _handleSendImage() async {
+    final ImagePicker picker = ImagePicker();
+    // Pick image from gallery
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+
+    if (image != null) {
+      setState(() {
+        _isUploading = true;
+      });
+
+      final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+
+      try {
+        await chatProvider.sendImageMessage(
+          chatRoomId: widget.chatRoomId,
+          imageFile: File(image.path),
+          senderId: currentUserId,
+          receiverId: widget.receiverId,
+          vehicleId: widget.vehicleId,
+          vehicleTitle: widget.vehicleTitle,
+          receiverName: widget.receiverName,
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error sending image: $e")),
+        );
+      } finally {
+        setState(() {
+          _isUploading = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // Hiển thị Avatar trên thanh tiêu đề
-        leadingWidth: 40, // Thu nhỏ nút back
+        leadingWidth: 40,
         title: Row(
           children: [
-            // Hiển thị Avatar nhỏ
             CircleAvatar(
               radius: 18,
               backgroundColor: Colors.grey[200],
@@ -77,7 +114,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   : null,
             ),
             const SizedBox(width: 10),
-            // Hiển thị Tên và Tên xe
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,27 +134,44 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Color(0xFF5D3FD3), // tím
-                Color(0xFFC51162), // hồng đậm
-              ],
+              colors: [Color(0xFF5D3FD3), Color(0xFFC51162)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
         ),
-      
+        actions: [
+    IconButton(
+      icon: const Icon(Icons.bookmark_add_rounded), // Icon chữ 'i'
+      tooltip: 'Xem hồ sơ',
+      onPressed: () {
+        // Chuyển sang màn hình hồ sơ công khai
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PublicProfileScreen(
+              userId: widget.receiverId, // Truyền ID người đang chat cùng
+            ),
+          ),
+        );
+      },
+    ),
+  ],
       ),
       body: Column(
         children: [
-          // 1. DANH SÁCH TIN NHẮN
+          // Loading indicator when uploading image
+          if (_isUploading)
+            const LinearProgressIndicator(backgroundColor: Colors.transparent),
+
+          // --- MESSAGE LIST ---
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
-                  .collection('chat_rooms') // 3. Lưu ý: collection cha là chat_rooms (theo Provider cũ)
+                  .collection('chat_rooms')
                   .doc(widget.chatRoomId)
                   .collection('messages')
-                  .orderBy('timestamp', descending: true) // 4. Sửa createdAt thành timestamp
+                  .orderBy('timestamp', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -126,59 +179,103 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text("Hãy bắt đầu cuộc trò chuyện!"));
+                  return const Center(child: Text("Start the conversation!"));
                 }
 
                 final messages = snapshot.data!.docs;
 
                 return ListView.builder(
-                  reverse: true,
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final msg = messages[index].data() as Map<String, dynamic>;
-                    final isMe = msg['senderId'] == currentUserId;
+  reverse: true,
+  itemCount: messages.length,
+  itemBuilder: (context, index) {
+    final msg = messages[index].data() as Map<String, dynamic>;
+    final isMe = msg['senderId'] == currentUserId;
+    
+    // Lấy nội dung tin nhắn
+    final String messageContent = msg['message'] ?? '';
+    
+    // 👇 LOGIC QUAN TRỌNG: Tự động phát hiện ảnh
+    // 1. Kiểm tra trường 'type' từ DB
+    // 2. HOẶC kiểm tra nếu nội dung bắt đầu bằng link ảnh của Firebase (để sửa lỗi hiện tại)
+    final String type = msg['type'] ?? 'text';
+    final bool isImage = type == 'image' || messageContent.startsWith('https://firebasestorage.googleapis.com');
 
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isMe ? Colors.blue : Colors.grey[300],
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(16),
-                            topRight: const Radius.circular(16),
-                            bottomLeft: isMe ? const Radius.circular(16) : Radius.zero,
-                            bottomRight: isMe ? Radius.zero : const Radius.circular(16),
-                          ),
-                        ),
-                        child: Text(
-                          msg['message'], // 5. Sửa msg['text'] thành msg['message']
-                          style: TextStyle(
-                              color: isMe ? Colors.white : Colors.black,
-                              fontSize: 16),
-                        ),
-                      ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: isImage 
+            ? Colors.transparent 
+            : (isMe ? Colors.blue : Colors.grey[300]),
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(16),
+          topRight: const Radius.circular(16),
+          bottomLeft: isMe ? const Radius.circular(16) : Radius.zero,
+          bottomRight: isMe ? Radius.zero : const Radius.circular(16),
+        ),
+      ),
+        // 👇 Hiển thị Ảnh hoặc Chữ dựa trên biến isImage
+        child: isImage
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  messageContent, // Link ảnh
+                  width: 200,
+                  height: 200,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return SizedBox(
+                      width: 200, 
+                      height: 200, 
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: isMe ? Colors.white : Colors.blue
+                        )
+                      )
                     );
                   },
-                );
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(Icons.broken_image, size: 50);
+                  },
+                ),
+              )
+            : Text(
+                messageContent,
+                style: TextStyle(
+                  color: isMe ? Colors.white : Colors.black,
+                  fontSize: 16,
+                ),
+              ),
+      ),
+    );
+  },
+);
               },
             ),
           ),
 
-          // 2. Ô NHẬP TIN NHẮN
+          // --- INPUT AREA ---
           Container(
             padding: const EdgeInsets.all(10),
             color: Colors.white,
             child: Row(
               children: [
+                // 4. Button to pick Image
+                IconButton(
+                  icon: const Icon(Icons.image, color: Colors.blue),
+                  onPressed: _handleSendImage,
+                ),
                 Expanded(
                   child: TextField(
-                    controller: _msgController, // Sửa thành _msgController
+                    controller: _msgController,
                     decoration: InputDecoration(
-                      hintText: "Nhập tin nhắn...",
+                      hintText: "Enter message...",
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30)),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
                     ),
                   ),
@@ -188,7 +285,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   backgroundColor: Colors.blue,
                   child: IconButton(
                     icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: _handleSend, // 6. Gọi đúng tên hàm _handleSend
+                    onPressed: _handleSend,
                   ),
                 )
               ],

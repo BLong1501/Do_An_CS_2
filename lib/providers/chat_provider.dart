@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 
 class ChatProvider extends ChangeNotifier {
@@ -10,6 +13,44 @@ class ChatProvider extends ChangeNotifier {
     ids.sort(); 
     return "${ids[0]}_${ids[1]}_$vehicleId";
   }
+  Future<void> sendImageMessage({
+  required String chatRoomId,
+  required File imageFile,
+  required String senderId,
+  required String receiverId,
+  required String vehicleId,
+  required String vehicleTitle,
+  required String receiverName,
+}) async {
+  try {
+    // 1. Upload image to Firebase Storage
+    String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+    Reference ref = FirebaseStorage.instance
+        .ref()
+        .child('chat_images')
+        .child(chatRoomId)
+        .child(fileName);
+
+    UploadTask uploadTask = ref.putFile(imageFile);
+    TaskSnapshot taskSnapshot = await uploadTask;
+    String downloadUrl = await taskSnapshot.ref.getDownloadURL();
+
+    // 2. Send message with type 'image'
+    await sendMessage(
+      chatRoomId: chatRoomId,
+      message: downloadUrl, // Store URL as message content
+      senderId: senderId,
+      receiverId: receiverId,
+      vehicleId: vehicleId,
+      vehicleTitle: vehicleTitle,
+      receiverName: receiverName,
+      type: 'image', // Add a type field to distinguish text vs image
+    );
+  } catch (e) {
+    print("Error sending image: $e");
+    rethrow;
+  }
+}
 
   // --- HÀM GỬI TIN NHẮN (ĐÃ SỬA LẠI TÊN TRƯỜNG) ---
   Future<void> sendMessage({
@@ -21,6 +62,7 @@ class ChatProvider extends ChangeNotifier {
     required String vehicleTitle,
     String? receiverName,
     String? receiverAvatar,
+    String type = 'text', //
   }) async {
     final Timestamp timestamp = Timestamp.now();
 

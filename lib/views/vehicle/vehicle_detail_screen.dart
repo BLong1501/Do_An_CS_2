@@ -9,6 +9,7 @@ import 'package:my_app/views/vehicle/add_vehicle_screen.dart';
 import 'package:my_app/views/admin/report/report_dialog_screen.dart'; // Import Dialog báo cáo
 import 'package:provider/provider.dart';
 import '../../models/vehicle_model.dart';
+import 'package:flutter/services.dart';
 
 class VehicleDetailScreen extends StatelessWidget {
   final VehicleModel vehicle;
@@ -24,15 +25,28 @@ class VehicleDetailScreen extends StatelessWidget {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
     // Kiểm tra xem người xem có phải là chủ xe không
-    final bool isOwner = 
+    final bool isOwner =
         currentUserId != null && currentUserId == vehicle.ownerId;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      // backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(vehicle.title),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        title: Text(vehicle.title, style: TextStyle(
+          color: Color.fromARGB(255, 255, 255, 255),
+        ),),
+       flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF5D3FD3), // tím
+                  Color(0xFFC51162), // hồng đậm
+                ],
+                begin: Alignment.topLeft, 
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
         elevation: 0,
 
         // Các nút hành động trên AppBar
@@ -58,7 +72,10 @@ class VehicleDetailScreen extends StatelessWidget {
                 ),
                 // Nút Xóa (Chỉ hiện cho chủ xe)
                 IconButton(
-                  icon: const Icon(Icons.delete, color: Color.fromARGB(255, 188, 67, 67)),
+                  icon: const Icon(
+                    Icons.delete,
+                    color: Color.fromARGB(255, 188, 67, 67),
+                  ),
                   tooltip: "Xóa tin",
                   onPressed: () {
                     _confirmDelete(context);
@@ -68,15 +85,21 @@ class VehicleDetailScreen extends StatelessWidget {
             : [
                 // Nút Báo cáo (Chỉ hiện cho người xem)
                 IconButton(
-                  icon: const Icon(Icons.report_gmailerrorred, color: Colors.red),
+                  icon: const Icon(
+                    Icons.report_gmailerrorred,
+                    color: Colors.red,
+                  ),
                   tooltip: "Báo cáo vi phạm",
                   onPressed: () {
                     if (currentUserId == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Vui lòng đăng nhập để báo cáo.")));
+                        const SnackBar(
+                          content: Text("Vui lòng đăng nhập để báo cáo."),
+                        ),
+                      );
                       return;
                     }
-                    
+
                     showDialog(
                       context: context,
                       builder: (ctx) => ReportDialog(
@@ -87,7 +110,7 @@ class VehicleDetailScreen extends StatelessWidget {
                     );
                   },
                 ),
-            ],
+              ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -299,7 +322,9 @@ class VehicleDetailScreen extends StatelessWidget {
                                         ),
                                         decoration: BoxDecoration(
                                           color: Colors.purple,
-                                          borderRadius: BorderRadius.circular(4),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
                                         ),
                                         child: const Text(
                                           "Cửa hàng uy tín",
@@ -343,10 +368,11 @@ class VehicleDetailScreen extends StatelessWidget {
           ],
         ),
       ),
-      
+
       // BOTTOM NAVIGATION BAR: NÚT LIÊN HỆ
       // BOTTOM NAVIGATION BAR: NÚT LIÊN HỆ
       // BOTTOM NAVIGATION BAR: NÚT LIÊN HỆ
+     // BOTTOM NAVIGATION BAR: NÚT LIÊN HỆ & GỌI ĐIỆN
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -359,118 +385,169 @@ class VehicleDetailScreen extends StatelessWidget {
             ),
           ],
         ),
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            minimumSize: const Size.fromHeight(50),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+        child: Row( // Chia làm 2 nút
+          children: [
+            // --- NÚT 1: GỌI ĐIỆN (COPY SỐ) ---
+            Expanded(
+              flex: 4, // Chiếm 40% chiều rộng
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color.fromARGB(255, 138, 68, 156), width: 2),
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                icon: const Icon(Icons.phone, color: Color.fromARGB(255, 151, 67, 146)),
+                label: const Text(
+                  "GỌI ĐIỆN", 
+                  style: TextStyle(
+                    fontSize: 14, 
+                    fontWeight: FontWeight.bold, 
+                    color: Color.fromRGBO(164, 70, 167, 1)
+                  )
+                ),
+                onPressed: () {
+                  // Logic copy số điện thoại
+                  if (vehicle.contactPhone.isNotEmpty) {
+                    Clipboard.setData(ClipboardData(text: vehicle.contactPhone));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Đã copy số: ${vehicle.contactPhone}"),
+                        backgroundColor: const Color.fromARGB(255, 89, 57, 139),
+                        duration: const Duration(seconds: 2),
+                        action: SnackBarAction(
+                          label: "OK",
+                          textColor: Colors.white,
+                          onPressed: () {},
+                        ),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Người bán không để lại số điện thoại.")),
+                    );
+                  }
+                },
+              ),
             ),
-          ),
-          // Trong VehicleDetailScreen.dart, phần onPressed của nút Liên hệ:
+            
+            const SizedBox(width: 12), // Khoảng cách giữa 2 nút
 
-onPressed: () async {
-  if (currentUserId == null) { /* ... Giữ nguyên logic check login ... */ return; }
-  if (isOwner) { /* ... Giữ nguyên logic check owner ... */ return; }
+            // --- NÚT 2: LIÊN HỆ NGAY (CHAT) ---
+            Expanded(
+              flex: 6, // Chiếm 60% chiều rộng (Nút Chat quan trọng hơn)
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 175, 87, 183),
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 0,
+                ),
+                icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+                label: const Text(
+                  "CHAT NGAY",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                
+                // Logic Chat giữ nguyên như cũ
+                onPressed: () async {
+                  if (currentUserId == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Vui lòng đăng nhập để chat.")),
+                    );
+                    return;
+                  }
+                  if (isOwner) {
+                     ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Đây là bài đăng của bạn.")),
+                    );
+                    return;
+                  }
 
-  // Hiển thị loading
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (c) => const Center(child: CircularProgressIndicator()),
-  );
+                  // Hiển thị loading
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (c) => const Center(child: CircularProgressIndicator()),
+                  );
 
-  try {
-    String targetChatRoomId;
-    String targetVehicleId = vehicle.id; // Mặc định là ID xe hiện tại
-    String targetVehicleTitle = vehicle.title; // Mặc định là tên xe hiện tại
+                  try {
+                    String targetChatRoomId;
+                    String targetVehicleId = vehicle.id;
+                    String targetVehicleTitle = vehicle.title;
 
-    // 1. TÌM KIẾM PHÒNG CHAT CŨ (QUAN TRỌNG)
-    // Quét xem mình và người bán này đã từng chat chưa
-    final QuerySnapshot query = await FirebaseFirestore.instance
-        .collection('chat_rooms')
-        .where('users', arrayContains: currentUserId)
-        .get();
+                    // 1. TÌM KIẾM PHÒNG CHAT CŨ
+                    final QuerySnapshot query = await FirebaseFirestore.instance
+                        .collection('chat_rooms')
+                        .where('users', arrayContains: currentUserId)
+                        .get();
 
-    DocumentSnapshot? existingRoom;
+                    DocumentSnapshot? existingRoom;
+                    for (var doc in query.docs) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final List<dynamic> users = data['users'] ?? [];
+                      if (users.contains(vehicle.ownerId)) {
+                        existingRoom = doc;
+                        break;
+                      }
+                    }
 
-    for (var doc in query.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final List<dynamic> users = data['users'] ?? [];
-      // Nếu tìm thấy phòng có chứa ID người bán
-      if (users.contains(vehicle.ownerId)) {
-        existingRoom = doc;
-        break; // Dừng lại ngay khi tìm thấy phòng gần nhất
-      }
-    }
+                    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
 
-    // 2. XỬ LÝ LOGIC GỘP PHÒNG
-    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+                    if (existingRoom != null) {
+                      targetChatRoomId = existingRoom.id;
+                    } else {
+                      targetChatRoomId = chatProvider.getChatRoomId(
+                          currentUserId!, vehicle.ownerId, vehicle.id);
+                    }
+                    
+                    // Lấy thông tin người bán
+                    String finalReceiverName = "Người bán";
+                    String? finalReceiverAvatar;
+                    DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(vehicle.ownerId).get();
+                    if (userDoc.exists) {
+                        final userData = userDoc.data() as Map<String, dynamic>;
+                        if (isStorePost) {
+                            finalReceiverName = vehicle.storeName ?? userData['storeName'] ?? "Cửa hàng";
+                            finalReceiverAvatar = userData['storeAva'];
+                        } else {
+                            finalReceiverName = userData['displayName'] ?? "Người dùng";
+                            finalReceiverAvatar = userData['photoUrl'];
+                        }
+                    }
 
-    if (existingRoom != null) {
-      // --- TRƯỜNG HỢP ĐÃ TỪNG CHAT ---
-      // Dùng lại ID phòng cũ để không tạo ra 2 dòng chat
-      targetChatRoomId = existingRoom.id;
-      
-      // Mẹo: Nếu bạn muốn giữ ngữ cảnh là chiếc xe mới, bạn có thể cập nhật lại title ở đây
-      // Nhưng ID phòng vẫn giữ nguyên -> Tin nhắn sẽ nối tiếp nhau
-    } else {
-      // --- TRƯỜNG HỢP CHƯA TỪNG CHAT ---
-      // Tạo phòng mới. 
-      // Mẹo: Nếu bạn muốn "Messenger Style" triệt để, có thể dùng luôn ID là 'general_inquiry' cho mọi trường hợp
-      // Nhưng code dưới đây sẽ tạo theo xe cho lần đầu, các lần sau sẽ tự gộp vào đây.
-      targetChatRoomId = chatProvider.getChatRoomId(
-          currentUserId!, vehicle.ownerId, vehicle.id);
-    }
-    
-    // 3. LẤY THÔNG TIN NGƯỜI BÁN (Code cũ của bạn, giữ nguyên logic lấy Avatar/Tên)
-    String finalReceiverName = "Người bán";
-    String? finalReceiverAvatar;
-    // ... (Code lấy dữ liệu từ Firebase Users mà tôi đã gửi ở câu trả lời trước) ...
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(vehicle.ownerId).get();
-    if (userDoc.exists) {
-        final userData = userDoc.data() as Map<String, dynamic>;
-        if (isStorePost) {
-            finalReceiverName = vehicle.storeName ?? userData['storeName'] ?? "Cửa hàng";
-            finalReceiverAvatar = userData['storeAva'];
-        } else {
-            finalReceiverName = userData['displayName'] ?? "Người dùng";
-            finalReceiverAvatar = userData['photoUrl'];
-        }
-    }
+                    if (context.mounted) Navigator.pop(context); // Tắt loading
 
-    // Tắt loading
-    if (context.mounted) Navigator.pop(context);
-
-    // 4. CHUYỂN TRANG
-    if (context.mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ChatDetailScreen(
-            chatRoomId: targetChatRoomId, // ID đã được xử lý gộp
-            receiverId: vehicle.ownerId,
-            receiverName: finalReceiverName,
-            receiverAvatar: finalReceiverAvatar,
-            vehicleId: targetVehicleId,     
-            vehicleTitle: targetVehicleTitle,
-          ),
-        ),
-      );
-    }
-  } catch (e) {
-    if (context.mounted) Navigator.pop(context);
-    print("Lỗi: $e");
-  }
-},
-          child: const Text(
-            "LIÊN HỆ NGAY",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+                    if (context.mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChatDetailScreen(
+                            chatRoomId: targetChatRoomId,
+                            receiverId: vehicle.ownerId,
+                            receiverName: finalReceiverName,
+                            receiverAvatar: finalReceiverAvatar,
+                            vehicleId: targetVehicleId,     
+                            vehicleTitle: targetVehicleTitle,
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) Navigator.pop(context);
+                    print("Lỗi: $e");
+                  }
+                },
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -546,7 +623,9 @@ onPressed: () async {
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi xóa: $e")));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text("Lỗi xóa: $e")));
                 }
               }
             },

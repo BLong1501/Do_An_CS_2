@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:firebase_storage/firebase_storage.dart' ;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:my_app/views/log/user_log_screen.dart';
 import 'package:my_app/views/profile/setting_screen.dart';
 import 'package:my_app/views/profile/update_seller_screen.dart';
 import 'package:my_app/views/profile/user_follow_list_screen.dart';
@@ -288,8 +289,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildMenuItem(
                   icon: Icons.history, 
                   title: "Lịch sử đăng nhập", 
-                  onTap: () { /* ... */ }
-                ),
+                  onTap: () {   
+                    Navigator.push(
+                      context, 
+                      MaterialPageRoute(builder: (_) => const ActivityLogScreen()));
+                }),
 
                 _buildSectionTitle("Hỗ trợ"),
 

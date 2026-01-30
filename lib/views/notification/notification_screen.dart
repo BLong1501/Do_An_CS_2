@@ -97,6 +97,13 @@ class NotificationScreen extends StatelessWidget {
       case 'account_banned': return const Icon(Icons.block, color: Colors.red);
       case 'new_post_following': return const Icon(Icons.rss_feed, color: Colors.blue);
       case 'violation_removed': return const Icon(Icons.gavel, color: Colors.red);
+      
+      // 👇 THÊM DÒNG NÀY: Icon cho thông báo hệ thống
+      case 'system': return const Icon(Icons.campaign, color: Colors.blueAccent); 
+      
+      case 'seller_approved': return const Icon(Icons.verified, color: Colors.purple); // (Tùy chọn thêm)
+      case 'seller_rejected': return const Icon(Icons.running_with_errors, color: Colors.orange); // (Tùy chọn thêm)
+      
       default: return const Icon(Icons.notifications, color: Colors.grey);
     }
   }
@@ -104,6 +111,41 @@ class NotificationScreen extends StatelessWidget {
   // Hàm xử lý khi ấn vào thông báo
  // Hàm xử lý khi ấn vào thông báo
   void _handleNavigation(BuildContext context, NotificationModel notif) async {
+    // 👇 1. XỬ LÝ THÔNG BÁO HỆ THỐNG (ADMIN GỬI) 👇
+    if (notif.type == 'system') {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          // Tiêu đề có icon loa cho đẹp
+          title: Row(
+            children: [
+              const Icon(Icons.campaign, color: Colors.blueAccent),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  notif.title, 
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                )
+              ),
+            ],
+          ),
+          // Nội dung tin nhắn
+          content: SingleChildScrollView(
+            child: Text(
+              notif.body,
+              style: const TextStyle(fontSize: 15, height: 1.5),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Đóng"),
+            ),
+          ],
+        ),
+      );
+      return; // Dừng lại, không chạy code phía dưới
+    }
     
     // --- 1. XỬ LÝ NÂNG CẤP SELLER (MỚI THÊM) ---
     

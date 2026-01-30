@@ -1,20 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
+import 'package:device_info_plus/device_info_plus.dart'; 
+import 'dart:io'; 
 
 class AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // 1. Lấy thông tin User hiện tại (ĐÃ CHUẨN)
+  // 1. Lấy thông tin User hiện tại
   Future<UserModel?> getCurrentUserData() async {
     try {
       User? firebaseUser = _auth.currentUser;
       if (firebaseUser != null) {
         DocumentSnapshot doc = await _db.collection('users').doc(firebaseUser.uid).get();
-        
         if (doc.exists) {
-          // Model mới của bạn đã xử lý tốt các trường thiếu bằng giá trị mặc định
           return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
         }
       }
@@ -25,38 +25,93 @@ class AuthRepository {
     }
   }
 
-  // 2. Hàm Đăng ký (Cập nhật thêm tham số phone và address cho đầy đủ)
-  // Mặc dù hiện tại AuthProvider đang tự xử lý, nhưng cập nhật ở đây để sau này dùng lại được
+  // 2. HÀM GHI LOG (QUAN TRỌNG)
+  Future<void> logActivity(String userId, String action) async {
+    try {
+      String deviceName = 'Thiết bị lạ';
+      DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+
+      if (Platform.isAndroid) {
+        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+        deviceName = "${androidInfo.brand} ${androidInfo.model}"; 
+      } else if (Platform.isIOS) {
+        IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+        deviceName = "${iosInfo.name} ${iosInfo.systemName}"; 
+      }
+
+      await _db
+          .collection('users')
+          .doc(userId)
+          .collection('activity_logs')
+          .add({
+        'action': action,
+        'timestamp': DateTime.now().toIso8601String(),
+        'deviceName': deviceName,
+      });
+    } catch (e) {
+      print("Lỗi ghi log: $e"); 
+    }
+  }
+
+  // 3. ĐĂNG NHẬP (Tự ghi log)
+  Future<UserCredential> login(String email, String password) async {
+    try {
+      UserCredential cred = await _auth.signInWithEmailAndPassword(
+        email: email, 
+        password: password
+      );
+      if (cred.user != null) {
+        await logActivity(cred.user!.uid, "Đăng nhập"); // Ghi log
+      }
+      return cred;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // 4. ĐĂNG XUẤT (Tự ghi log)
+  Future<void> logout() async {
+    try {
+      if (_auth.currentUser != null) {
+        await logActivity(_auth.currentUser!.uid, "Đăng xuất"); // Ghi log
+      }
+      await _auth.signOut();
+    } catch (e) {
+      print("Lỗi đăng xuất: $e");
+    }
+  }
+
+  // 5. Đăng ký (Tự ghi log)
   Future<void> register({
     required String email, 
     required String password, 
     required String name,
-    String? phone,    // Thêm số điện thoại
-    String? address,  // Thêm địa chỉ
+    String? phone,    
+    String? address,  
   }) async {
-    // 1. Tạo tài khoản Auth
     UserCredential credential = await _auth.createUserWithEmailAndPassword(
       email: email, 
       password: password
     );
     
-    // 2. Tạo Model với đầy đủ thông tin mới
     UserModel newUser = UserModel(
       uid: credential.user!.uid, 
       email: email, 
       displayName: name,
-      phoneNumber: phone,       // Lưu SĐT
-      address: address,         // Lưu địa chỉ
+      phoneNumber: phone,       
+      address: address,         
       role: UserRole.user,
       isActive: true,
       isPendingUpgrade: false,
       favoritePostIds: [],
       createdAt: DateTime.now(),
-      followers: 0, // Mặc định 0
-      following: 0, // Mặc định 0
+      followers: 0, 
+      following: 0, 
     );
     
-    // 3. Lưu lên Firestore
     await _db.collection('users').doc(credential.user!.uid).set(newUser.toMap());
+    
+    // Ghi log đăng ký
+    await logActivity(credential.user!.uid, "Đăng ký tài khoản");
   }
 }

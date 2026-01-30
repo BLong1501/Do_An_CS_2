@@ -73,7 +73,7 @@ class ChatProvider extends ChangeNotifier {
       "message": message,
       "timestamp": timestamp,
       "isRead": false,
-      "type": "text",
+      "type": type ,
     };
 
     await _firestore

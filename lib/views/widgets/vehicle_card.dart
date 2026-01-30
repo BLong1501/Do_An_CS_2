@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:my_app/views/widgets/favourite_button.dart';
 import '../../models/vehicle_model.dart';
 
 class VehicleCard extends StatefulWidget {
@@ -161,20 +162,14 @@ class _VehicleCardState extends State<VehicleCard> {
                   
                   // Icon Tim (Yêu thích) - Góc phải trên
                   Positioned(
-                    top: 8,
-                    right: 8,
-                    child: GestureDetector(
-                      onTap: _toggleFavorite,
-                      child: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: isFavorite ? Colors.red : Colors.white,
-                        size: 24,
-                        shadows: const [
-                          Shadow(blurRadius: 2, color: Colors.black45, offset: Offset(0, 1))
-                        ],
-                      ),
-                    ),
-                  ),
+      top: 8,
+      right: 8,
+      child: CircleAvatar(
+        backgroundColor: Colors.white,
+        radius: 16,
+        child: FavoriteButton(vehicleId: widget.vehicle.id), // Truyền ID xe vào đây
+      ),
+    ),
 
                   // Thời gian đăng - Góc trái dưới
                   Positioned(

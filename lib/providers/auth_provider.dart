@@ -51,6 +51,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await _authRepo.logout();
     _userSubscription?.cancel();
     _userSubscription = null;
     await _auth.signOut();
@@ -133,38 +134,21 @@ class AuthProvider extends ChangeNotifier {
     }
   }
   // ... (Giữ nguyên hàm register) ...
-  Future<void> register(String email, String password, String name, String phone, String address) async {
+Future<void> register(String email, String password, String name, String phone, String address) async {
     _isLoading = true;
     notifyListeners();
     try {
-      UserCredential cred = await _auth.createUserWithEmailAndPassword(
+      // 👇 GỌI REPO
+      await _authRepo.register(
         email: email, 
-        password: password
+        password: password, 
+        name: name,
+        phone: phone,
+        address: address
       );
       
-      User? firebaseUser = cred.user;
-      
-      if (firebaseUser != null) {
-        await firebaseUser.updateDisplayName(name);
-
-        UserModel newUser = UserModel(
-          uid: firebaseUser.uid,
-          email: email,
-          displayName: name,
-          phoneNumber: phone,
-          address: address,
-          role: UserRole.user,
-          createdAt: DateTime.now(),
-          lastLoginAt: DateTime.now(),
-        );
-
-        await _firestore
-            .collection('users')
-            .doc(firebaseUser.uid)
-            .set(newUser.toMap());
-            
-        _user = newUser;
-      }
+      // Sau khi đăng ký xong, user đã được tạo và login, load data lên
+      await fetchUserData();
     } catch (e) {
       rethrow;
     } finally {
@@ -203,10 +187,7 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      await _auth.signInWithEmailAndPassword(
-        email: email, 
-        password: password
-      );
+      await _authRepo.login(email, password);
       await fetchUserData();
     } catch (e) {
       rethrow;

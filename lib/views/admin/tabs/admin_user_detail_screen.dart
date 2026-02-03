@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:my_app/services/notification_service.dart';
+import 'package:my_app/views/admin/user/admin_user_profile_screen.dart';
 import 'package:my_app/views/profile/public_profile_screen.dart';
 
 class AdminUserDetailScreen extends StatefulWidget {
@@ -280,7 +281,7 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                           child: OutlinedButton.icon(
                             icon: const Icon(Icons.visibility),
                             label: const Text("Xem Profile"),
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PublicProfileScreen(userId: widget.userId, forceIndividual: false))),
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AdminUserProfileScreen(userId: widget.userId))),
                           ),
                         ),
                         const SizedBox(width: 10),

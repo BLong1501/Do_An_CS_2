@@ -35,8 +35,8 @@ class _UserManagementTabState extends State<UserManagementTab> with SingleTicker
     required String password, 
     required String name, 
     required String role,
-    required String phone,   // <-- Mới
-    required String address, // <-- Mới
+    required String phone,   
+    required String address, 
   }) async {
     showDialog(
       context: context,

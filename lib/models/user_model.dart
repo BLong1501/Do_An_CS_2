@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 enum UserRole { user, seller, admin }
 
 class UserModel {
@@ -16,15 +18,15 @@ class UserModel {
   final DateTime? lastLoginAt;
 
   // Chỉ số cá nhân
-  final int followers; // Follow cá nhân (bạn bè)
+  final int followers; 
   final int following;
 
-  // 👇 [THÔNG TIN CỬA HÀNG]
+  // [THÔNG TIN CỬA HÀNG]
   final String? storeName;
   final String? taxCode;
   final String? description;
   final String? storeAva;
-  final int storeFollowers; // 👈 [MỚI] Số người theo dõi cửa hàng
+  final int storeFollowers; 
 
   UserModel({
     required this.uid,
@@ -46,7 +48,7 @@ class UserModel {
     this.taxCode,
     this.description,
     this.storeAva,
-    this.storeFollowers = 0, // 👈 [MỚI] Mặc định là 0
+    this.storeFollowers = 0, 
   });
 
   // Lưu lên Firestore
@@ -61,18 +63,26 @@ class UserModel {
     'isPendingUpgrade': isPendingUpgrade,
     'address': address,
     'favoritePostIds': favoritePostIds,
+    // Lưu ý: Khi update từ App thì lưu String, nhưng tạo từ Admin thì là Timestamp
+    // Model này sẽ xử lý được cả hai khi đọc về.
     'createdAt': createdAt.toIso8601String(),
     'lastLoginAt': lastLoginAt?.toIso8601String(),
     'followers': followers,
     'following': following,
-    
-    // Các trường của Shop
     'storeName': storeName,
     'taxCode': taxCode,
     'description': description,
     'storeAva': storeAva,
-    'storeFollowers': storeFollowers, // 👈 [MỚI] Lưu lên DB
+    'storeFollowers': storeFollowers,
   };
+
+  // 👇👇👇 HÀM XỬ LÝ NGÀY THÁNG AN TOÀN (QUAN TRỌNG) 👇👇👇
+  static DateTime _parseDate(dynamic val) {
+    if (val == null) return DateTime.now(); // Nếu null thì lấy giờ hiện tại
+    if (val is Timestamp) return val.toDate(); // ✅ Xử lý nếu là Timestamp (từ Admin tạo)
+    if (val is String) return DateTime.tryParse(val) ?? DateTime.now(); // ✅ Xử lý nếu là String
+    return DateTime.now(); // Fallback
+  }
 
   // Đọc từ Firestore về App
   factory UserModel.fromMap(Map<String, dynamic> data, String id) {
@@ -91,25 +101,23 @@ class UserModel {
       isPendingUpgrade: data['isPendingUpgrade'] ?? false,
       address: data['address'],
       favoritePostIds: List<String>.from(data['favoritePostIds'] ?? []),
-      createdAt: data['createdAt'] != null
-          ? DateTime.parse(data['createdAt'])
-          : DateTime.now(),
-      lastLoginAt: data['lastLoginAt'] != null
-          ? DateTime.parse(data['lastLoginAt'])
-          : null,
+      
+      // 👇 SỬA LẠI ĐOẠN NÀY ĐỂ KHÔNG BỊ CRASH
+      createdAt: _parseDate(data['createdAt']),
+      lastLoginAt: data['lastLoginAt'] != null ? _parseDate(data['lastLoginAt']) : null,
+      // 👆
+      
       followers: data['followers'] ?? 0,
       following: data['following'] ?? 0,
       
-      // Đọc thông tin Shop
       storeName: data['storeName'],
       taxCode: data['taxCode'],
       description: data['description'],
       storeAva: data['storeAva'],
-      storeFollowers: data['storeFollowers'] ?? 0, // 👈 [MỚI] Đọc về (có default)
+      storeFollowers: data['storeFollowers'] ?? 0,
     );
   }
 
-  // Hàm copyWith (Hỗ trợ cập nhật nhanh)
   UserModel copyWith({
     String? uid,
     String? email,
@@ -130,7 +138,7 @@ class UserModel {
     String? taxCode,
     String? description,
     String? storeAva,
-    int? storeFollowers, // 👈 [MỚI] Thêm tham số
+    int? storeFollowers,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -148,13 +156,11 @@ class UserModel {
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       followers: followers ?? this.followers,
       following: following ?? this.following,
-      
-      // Update Shop Info
       storeName: storeName ?? this.storeName,
       taxCode: taxCode ?? this.taxCode,
       description: description ?? this.description,
       storeAva: storeAva ?? this.storeAva,
-      storeFollowers: storeFollowers ?? this.storeFollowers, // 👈 [MỚI] Update giá trị
+      storeFollowers: storeFollowers ?? this.storeFollowers,
     );
   }
 }

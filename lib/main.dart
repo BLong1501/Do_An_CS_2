@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/models/user_model.dart';
 import 'package:my_app/providers/chat_provider.dart';
+import 'package:my_app/views/admin/admin_screen.dart';
 import 'package:provider/provider.dart';
 
 // Import các provider và screen
@@ -51,23 +53,38 @@ class MyApp extends StatelessWidget {
           primaryColor: const Color.fromARGB(255, 48, 90, 204),
         ),
         // 👇 2. Logic điều hướng (Giữ nguyên vì nó rất tốt)
-        home: StreamBuilder<User?>(
-          stream: FirebaseAuth.instance.authStateChanges(),
-          builder: (context, snapshot) {
-            // Màn hình chờ khi đang kiểm tra trạng thái login
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(body: Center(child: CircularProgressIndicator()));
-            }
-            
-            // Nếu đã đăng nhập -> Vào MainScreen
-            if (snapshot.hasData) {
-              return const MainScreen(); 
-            }
-            
-            // Nếu chưa đăng nhập -> Vào LoginScreen
-            return const LoginScreen();
-          },
-        ),
+       // Thay thế đoạn home: StreamBuilder... bằng đoạn này:
+home: Consumer<my_auth.AuthProvider>(
+  builder: (context, authProvider, _) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // 1. Đang kiểm tra Auth Firebase
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+
+        // 2. Chưa đăng nhập -> Về trang Login
+        if (!snapshot.hasData) {
+          return const LoginScreen();
+        }
+
+        // 3. Đã đăng nhập Firebase -> Kiểm tra Role trong Firestore
+        // Nếu AuthProvider chưa load xong user data -> Hiện loading
+        if (authProvider.user == null) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+
+        // 4. Đã có data User -> Điều hướng theo Role
+        if (authProvider.user!.role == UserRole.admin) { // Sửa lại đường dẫn UserRole cho đúng file model của bạn
+          return const AdminScreen();
+        } else {
+          return const MainScreen(); // User hoặc Seller vào đây
+        }
+      },
+    );
+  },
+),
       ),
     );
   }

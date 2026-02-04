@@ -51,7 +51,7 @@ dependencies:
   flutter_facebook_auth: ^7.0.0 # Hoặc bản mới nhất
   flutter_slidable: ^3.1.0  # Thêm dòng này
       # Để chọn ảnh từ máy
-
+  fl_chart: ^0.66.2  # Dùng để vẽ biểu đồ
 dev_dependencies:
   flutter_test:
     sdk: flutter

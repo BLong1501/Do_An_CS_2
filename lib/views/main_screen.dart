@@ -51,7 +51,14 @@ class _MainScreenState extends State<MainScreen> {
       builder: (context, auth, child) {
         final user = auth.user;
         final bool isSeller = user != null && (user.role == UserRole.seller || user.role == UserRole.admin);
-
+        if (!isSeller && _currentIndex == 2) {
+           // Dùng addPostFrameCallback để tránh lỗi setState trong khi build
+           WidgetsBinding.instance.addPostFrameCallback((_) {
+             setState(() {
+               _currentIndex = 0;
+             });
+           });
+        }
         // Logic kiểm tra để hiện nút: Phải là Seller VÀ đang ở tab Trang chủ (index 0)
         final bool showFab = isSeller && _currentIndex == 0;
 

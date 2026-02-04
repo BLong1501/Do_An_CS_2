@@ -95,13 +95,30 @@ class _VehicleListByStatus extends StatelessWidget {
     );
   }
 
-  // 4. HÀM XỬ LÝ ĐÁNH DẤU ĐÃ BÁN (MỚI THÊM)
-  void _markAsSold(BuildContext context, String vehicleId) {
+ // 4. HÀM XỬ LÝ ĐÁNH DẤU ĐÃ BÁN & GHI NHẬN DOANH THU
+  void _markAsSold(BuildContext context, VehicleModel vehicle) { // 👇 Nhận vào cả object VehicleModel thay vì chỉ ID
+    final TextEditingController priceController = TextEditingController(text: vehicle.price.toStringAsFixed(0));
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Xác nhận đã bán?"),
-        content: const Text("Tin đăng sẽ được ẩn khỏi trang chủ và chuyển vào mục 'Đã bán'."),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Vui lòng xác nhận giá thực tế bạn đã bán chiếc xe này (để tính doanh thu):"),
+            const SizedBox(height: 10),
+            TextField(
+              controller: priceController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: "Giá bán thực tế (VNĐ)",
+                border: OutlineInputBorder(),
+                suffixText: "đ",
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -112,16 +129,46 @@ class _VehicleListByStatus extends StatelessWidget {
             onPressed: () async {
               Navigator.pop(ctx); // Đóng dialog
               
+              double? finalPrice = double.tryParse(priceController.text);
+              if (finalPrice == null) {
+                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Giá bán không hợp lệ!")));
+                 return;
+              }
+
               try {
-                // Cập nhật trạng thái status -> 'sold'
-                await FirebaseFirestore.instance
-                    .collection('vehicles')
-                    .doc(vehicleId)
-                    .update({'status': 'sold'});
+                final db = FirebaseFirestore.instance;
+                final user = FirebaseAuth.instance.currentUser;
+
+                // Dùng Batch để đảm bảo cả 2 lệnh cùng thành công hoặc cùng thất bại
+                WriteBatch batch = db.batch();
+
+                // 1. Cập nhật trạng thái xe -> 'sold'
+                DocumentReference vehicleRef = db.collection('vehicles').doc(vehicle.id);
+                batch.update(vehicleRef, {'status': 'sold'});
+
+                // 2. Tạo đơn hàng ảo (Order) để tính doanh thu
+                DocumentReference orderRef = db.collection('orders').doc(); // Tự sinh ID
+                batch.set(orderRef, {
+                  'sellerId': user!.uid,
+                  'vehicleId': vehicle.id,
+                  'vehicleName': vehicle.title,
+                  'totalPrice': finalPrice, // Giá thực tế chốt đơn
+                  'status': 'completed', // Đã hoàn thành
+                  'createdAt': FieldValue.serverTimestamp(), // Lấy giờ server
+                  'items': [ // Mảng items để đếm số lượng sp
+                    {
+                      'id': vehicle.id,
+                      'price': finalPrice,
+                      'title': vehicle.title
+                    }
+                  ]
+                });
+
+                await batch.commit();
 
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Chúc mừng! Đã cập nhật trạng thái thành công.")),
+                    const SnackBar(content: Text("Đã bán! Doanh thu đã được ghi nhận.")),
                   );
                 }
               } catch (e) {
@@ -132,7 +179,7 @@ class _VehicleListByStatus extends StatelessWidget {
                 }
               }
             },
-            child: const Text("Xác nhận đã bán", style: TextStyle(color: Colors.white)),
+            child: const Text("Xác nhận", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -214,7 +261,7 @@ class _VehicleListByStatus extends StatelessWidget {
                             Padding(
                               padding: const EdgeInsets.only(right: 8.0),
                               child: TextButton.icon(
-                                onPressed: () => _markAsSold(context, docId),
+                                onPressed: () => _markAsSold(context, vehicle), // 👈 Truyền cả object vehicle
                                 icon: const Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
                                 label: const Text("Đã bán", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
                                 style: TextButton.styleFrom(

@@ -5,38 +5,38 @@ class DataSeeder {
 
   // 1. Dữ liệu Categories
   final List<String> categories = [
-    'Xe máy', 'Ô tô', 'Xe đạp', 'Xe tải', 'Xe điện', 'Phụ tùng', 'Tàu thuyền'
+    'Xe máy', 'Ô tô', 'Xe đạp', 'Xe tải', 'Xe điện', 'Phụ tùng', 'Tàu thuyền','Khác'
   ];
 
   // 2. Mapping Hãng xe (ĐÃ BỔ SUNG TESLA & CẬP NHẬT)
   final Map<String, List<String>> brandMapping = {
     'Xe máy': [
-      'Honda', 'Yamaha', 'Suzuki', 'Piaggio', 'SYM', 'VinFast', 'Ducati', 'Kawasaki', 'BMW'
+      'Honda', 'Yamaha', 'Suzuki', 'Piaggio', 'SYM', 'VinFast', 'Ducati', 'Kawasaki', 'BMW','Khác',
     ],
     'Ô tô': [
       'Toyota', 'Hyundai', 'Kia', 'Mazda', 'Ford', 'Honda', 'VinFast', 
-      'Mercedes', 'BMW', 'Audi', 'Lexus', 'Mitsubishi', 'Tesla', 'Land Rover', 'Porsche'
+      'Mercedes', 'BMW', 'Audi', 'Lexus', 'Mitsubishi', 'Tesla', 'Land Rover', 'Porsche','Khác',
     ],
     'Xe đạp': [
-      'Asama', 'Giant', 'Martin', 'Thống Nhất', 'Galaxy'
+      'Asama', 'Giant', 'Martin', 'Thống Nhất', 'Galaxy','Khác',
     ],
     'Xe tải': [
-      'Thaco', 'Hyundai', 'Isuzu', 'Hino', 'Dongfeng', 'Fuso', 'Kia', 'JAC', 'Howo'
+      'Thaco', 'Hyundai', 'Isuzu', 'Hino', 'Dongfeng', 'Fuso', 'Kia', 'JAC', 'Howo','Khác',
     ],
     'Xe điện': [
-      'VinFast', 'Pega', 'Yadea', 'Dat Bike', 'Tesla' // Tesla cũng là xe điện
+      'VinFast', 'Pega', 'Yadea', 'Dat Bike', 'Tesla','Khác',// Tesla cũng là xe điện
     ]
   };
 
-  final List<String> fuelTypes = ['Xăng', 'Dầu', 'Điện', 'Hybrid'];
+  final List<String> fuelTypes = ['Xăng', 'Dầu', 'Điện', 'Hybrid','Khác',];
 
   final List<String> locations = [
     'Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Nghệ An', 'Thanh Hóa', 'Huế',
-    'Bình Dương', 'Đồng Nai', 'Quảng Ninh', 'Toàn quốc' // Thêm vài tỉnh hay mua bán xe
+    'Bình Dương', 'Đồng Nai', 'Quảng Ninh', 'Toàn quốc' ,'Khác',// Thêm vài tỉnh hay mua bán xe
   ];
 
   // --- 3. CÁC MỤC MỚI BỔ SUNG ---
-  final List<String> colors = ['Đen', 'Trắng', 'Đỏ', 'Bạc', 'Xám', 'Xanh', 'Vàng', 'Cam', 'Nâu', 'Khác'];
+  final List<String> colors = ['Đen', 'Trắng', 'Đỏ', 'Bạc', 'Xám', 'Xanh', 'Vàng', 'Cam', 'Nâu', 'Khác',];
   
   final List<String> conditions = ['Xe mới', 'Đã sử dụng', 'Xe lướt (Like New)'];
   

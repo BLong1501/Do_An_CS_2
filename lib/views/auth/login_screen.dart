@@ -129,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "XE TỐT MARKET",
+          "XE GIÁ TỐT ",
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,

@@ -30,7 +30,9 @@ class VehicleDetailScreen extends StatelessWidget {
 
     return Scaffold(
       // backgroundColor: Colors.white,
+      
       appBar: AppBar(
+        foregroundColor: Colors.white,
         backgroundColor: Colors.white,
         title: Text(vehicle.title, style: TextStyle(
           color: Color.fromARGB(255, 255, 255, 255),
@@ -54,7 +56,7 @@ class VehicleDetailScreen extends StatelessWidget {
             ? [
                 // Nút Sửa (Chỉ hiện cho chủ xe)
                 IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue),
+                  icon: const Icon(Icons.edit, color: Color.fromARGB(255, 255, 255, 255)),
                   tooltip: "Chỉnh sửa",
                   onPressed: () {
                     Navigator.push(
@@ -74,7 +76,7 @@ class VehicleDetailScreen extends StatelessWidget {
                 IconButton(
                   icon: const Icon(
                     Icons.delete,
-                    color: Color.fromARGB(255, 188, 67, 67),
+                    color: Color.fromARGB(255, 255, 253, 253),
                   ),
                   tooltip: "Xóa tin",
                   onPressed: () {
@@ -87,7 +89,7 @@ class VehicleDetailScreen extends StatelessWidget {
                 IconButton(
                   icon: const Icon(
                     Icons.report_gmailerrorred,
-                    color: Colors.red,
+                    color: Color.fromARGB(255, 255, 255, 255),
                   ),
                   tooltip: "Báo cáo vi phạm",
                   onPressed: () {
@@ -385,8 +387,11 @@ class VehicleDetailScreen extends StatelessWidget {
             ),
           ],
         ),
-        child: Row( // Chia làm 2 nút
+        
+        child:   Row( // Chia làm 2 nút
+       
           children: [
+            if (currentUserId != vehicle.ownerId)
             // --- NÚT 1: GỌI ĐIỆN (COPY SỐ) ---
             Expanded(
               flex: 4, // Chiếm 40% chiều rộng
@@ -432,9 +437,11 @@ class VehicleDetailScreen extends StatelessWidget {
               ),
             ),
             
+  
             const SizedBox(width: 12), // Khoảng cách giữa 2 nút
 
             // --- NÚT 2: LIÊN HỆ NGAY (CHAT) ---
+            if (currentUserId != vehicle.ownerId)
             Expanded(
               flex: 6, // Chiếm 60% chiều rộng (Nút Chat quan trọng hơn)
               child: ElevatedButton.icon(

@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Xe Giá Tốt',
+        title: 'Xe Tốt Market',
         theme: ThemeData(
           primarySwatch: Colors.blue,
           primaryColor: const Color.fromARGB(255, 48, 90, 204),

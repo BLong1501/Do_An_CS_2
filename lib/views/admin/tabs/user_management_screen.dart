@@ -19,7 +19,15 @@ class _UserManagementTabState extends State<UserManagementTab> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    // 👇 1. Đổi thành 3 tab
+    _tabController = TabController(length: 3, vsync: this);
+    
+    // 👇 Thêm lắng nghe thao tác VUỐT màn hình để cập nhật nút Tạo mới
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {});
+      }
+    });
   }
 
   @override
@@ -29,7 +37,7 @@ class _UserManagementTabState extends State<UserManagementTab> with SingleTicker
     super.dispose();
   }
 
-  // --- 1. HÀM TẠO USER (ĐÃ BỔ SUNG SĐT VÀ ĐỊA CHỈ) ---
+  // --- 1. HÀM TẠO USER ---
   Future<void> _createNewUser({
     required String email, 
     required String password, 
@@ -46,18 +54,16 @@ class _UserManagementTabState extends State<UserManagementTab> with SingleTicker
 
     FirebaseApp? tempApp;
     try {
-      // Tạo App phụ để không bị logout admin hiện tại
       tempApp = await Firebase.initializeApp(name: 'TempApp', options: Firebase.app().options);
 
       UserCredential userCredential = await FirebaseAuth.instanceFor(app: tempApp)
           .createUserWithEmailAndPassword(email: email, password: password);
 
-      // Lưu Full thông tin vào Firestore
       await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
         'email': email,
         'displayName': name,
-        'phoneNumber': phone,    // <-- Lưu SĐT
-        'address': address,      // <-- Lưu Địa chỉ
+        'phoneNumber': phone,    
+        'address': address,      
         'photoUrl': null,
         'role': role,
         'createdAt': FieldValue.serverTimestamp(),
@@ -65,11 +71,10 @@ class _UserManagementTabState extends State<UserManagementTab> with SingleTicker
         'canPost': true,
         'followers': 0,
         'following': 0,
-        // Nếu là seller thì thêm các trường mặc định của seller
         if (role == 'seller') ...{
-           'storeName': name, // Mặc định tên shop giống tên người
+           'storeName': name, 
            'storeFollowers': 0,
-           'isSellerVerified': true, // Admin tạo thì cho duyệt luôn hoặc false tùy bạn
+           'isSellerVerified': true, 
         }
       });
 
@@ -86,88 +91,89 @@ class _UserManagementTabState extends State<UserManagementTab> with SingleTicker
     }
   }
 
-  // --- 2. HỘP THOẠI THÔNG MINH (XỬ LÝ LOGIC TAB) ---
+  // --- 2. HỘP THOẠI THÔNG MINH ---
   void _showAddUserDialog() {
     final emailController = TextEditingController();
     final passController = TextEditingController();
     final nameController = TextEditingController();
-    final phoneController = TextEditingController();   // <-- Mới
-    final addressController = TextEditingController(); // <-- Mới
+    final phoneController = TextEditingController();   
+    final addressController = TextEditingController(); 
     
-    // Kiểm tra xem đang ở Tab nào?
-    // index 0: Người dùng (User/Seller)
-    // index 1: Quản trị viên (Admin)
-    final bool isAdminTab = _tabController.index == 1;
+    // 👇 2. Logic xác định vai trò dựa trên Tab đang mở
+    int currentIndex = _tabController.index;
+    String selectedRole = 'user';
+    String roleDisplayName = "Người mua (User)";
+    Color roleColor = Colors.blueGrey;
 
-    // Nếu ở Tab Admin thì mặc định role là admin, ngược lại mặc định là user
-    String selectedRole = isAdminTab ? 'admin' : 'user';
+    if (currentIndex == 0) {
+      selectedRole = 'user';
+      roleDisplayName = "Người mua (User)";
+      roleColor = Colors.blue;
+    } else if (currentIndex == 1) {
+      selectedRole = 'seller';
+      roleDisplayName = "Người bán (Seller)";
+      roleColor = Colors.orange;
+    } else {
+      selectedRole = 'admin';
+      roleDisplayName = "Quản trị viên (Admin)";
+      roleColor = Colors.red;
+    }
 
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            title: Text(isAdminTab ? "Thêm Quản trị viên" : "Thêm Người dùng mới"),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(controller: emailController, decoration: const InputDecoration(labelText: "Email (*)")),
-                  TextField(controller: passController, decoration: const InputDecoration(labelText: "Mật khẩu (*)"), obscureText: true),
-                  TextField(controller: nameController, decoration: const InputDecoration(labelText: "Tên hiển thị (*)")),
-                  TextField(controller: phoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: "Số điện thoại")), // <-- Nhập SĐT
-                  TextField(controller: addressController, decoration: const InputDecoration(labelText: "Địa chỉ")), // <-- Nhập Địa chỉ
-                  const SizedBox(height: 15),
-                  
-                  // LOGIC HIỂN THỊ CHỌN ROLE
-                  if (isAdminTab) ...[
-                    // Nếu là Tab Admin: Chỉ hiện text thông báo, không cho chọn
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(8)),
-                      child: const Text("Vai trò: QUẢN TRỊ VIÊN (ADMIN)", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                    )
-                  ] else ...[
-                    // Nếu là Tab User: Cho chọn User hoặc Seller
-                    DropdownButtonFormField<String>(
-                      value: selectedRole,
-                      decoration: const InputDecoration(labelText: "Vai trò", border: OutlineInputBorder()),
-                      items: const [
-                        DropdownMenuItem(value: 'user', child: Text("Người mua (User)")),
-                        DropdownMenuItem(value: 'seller', child: Text("Người bán (Seller)")),
-                      ],
-                      onChanged: (val) {
-                        setDialogState(() => selectedRole = val!);
-                      },
-                    ),
-                  ]
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Hủy")),
-              ElevatedButton(
-                onPressed: () {
-                  if (emailController.text.isEmpty || passController.text.isEmpty || nameController.text.isEmpty) {
-                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng nhập đủ Email, Mật khẩu, Tên")));
-                     return;
-                  }
-                  
-                  _createNewUser(
-                    email: emailController.text.trim(),
-                    password: passController.text.trim(),
-                    name: nameController.text.trim(),
-                    role: selectedRole,
-                    phone: phoneController.text.trim(),     // <-- Truyền vào hàm
-                    address: addressController.text.trim(), // <-- Truyền vào hàm
-                  );
-                },
-                child: const Text("Tạo ngay"),
-              ),
+      builder: (ctx) => AlertDialog(
+        title: Text("Thêm $roleDisplayName mới"),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: emailController, decoration: const InputDecoration(labelText: "Email (*)")),
+              TextField(controller: passController, decoration: const InputDecoration(labelText: "Mật khẩu (*)"), obscureText: true),
+              TextField(controller: nameController, decoration: const InputDecoration(labelText: "Tên hiển thị (*)")),
+              TextField(controller: phoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: "Số điện thoại")),
+              TextField(controller: addressController, decoration: const InputDecoration(labelText: "Địa chỉ")),
+              const SizedBox(height: 15),
+              
+              // Hiển thị trực quan Role đang được tạo
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: roleColor.withOpacity(0.1), 
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: roleColor)
+                ),
+                child: Text(
+                  "Vai trò: $roleDisplayName", 
+                  style: TextStyle(color: roleColor, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              )
             ],
-          );
-        },
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Hủy")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: roleColor, foregroundColor: Colors.white),
+            onPressed: () {
+              if (emailController.text.isEmpty || passController.text.isEmpty || nameController.text.isEmpty) {
+                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng nhập đủ Email, Mật khẩu, Tên")));
+                 return;
+              }
+              
+              _createNewUser(
+                email: emailController.text.trim(),
+                password: passController.text.trim(),
+                name: nameController.text.trim(),
+                role: selectedRole, // Tự động lấy role theo Tab
+                phone: phoneController.text.trim(),
+                address: addressController.text.trim(), 
+              );
+            },
+            child: const Text("Tạo ngay"),
+          ),
+        ],
       ),
     );
   }
@@ -194,28 +200,28 @@ class _UserManagementTabState extends State<UserManagementTab> with SingleTicker
             ),
           ),
 
-          // 2. TAB BAR
+          // 2. TAB BAR (👇 CẬP NHẬT THÀNH 3 TAB)
           TabBar(
             controller: _tabController,
             labelColor: Colors.blueGrey[900],
             unselectedLabelColor: Colors.grey,
             indicatorColor: Colors.blueGrey,
-            onTap: (index) {
-              // Gọi setState để cập nhật lại nút FloatingActionButton khi đổi tab (tùy chọn, nhưng tốt cho UI)
-              setState(() {});
-            },
+            isScrollable: true, // Cho phép cuộn ngang nếu text quá dài
+            tabAlignment: TabAlignment.start,
             tabs: const [
-              Tab(text: "Người dùng (Seller/User)"),
+              Tab(text: "Người mua (User)"),
+              Tab(text: "Người bán (Seller)"),
               Tab(text: "Quản trị viên (Admin)"),
             ],
           ),
 
-          // 3. DANH SÁCH
+          // 3. DANH SÁCH (👇 CẬP NHẬT THÀNH 3 LIST)
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildUserList(filterRoles: ['user', 'seller']),
+                _buildUserList(filterRoles: ['user']),
+                _buildUserList(filterRoles: ['seller']),
                 _buildUserList(filterRoles: ['admin']),
               ],
             ),
@@ -223,21 +229,24 @@ class _UserManagementTabState extends State<UserManagementTab> with SingleTicker
         ],
       ),
       
-      // NÚT TẠO MỚI (Màu sắc thay đổi theo Tab để dễ nhận biết)
+      // 👇 NÚT TẠO MỚI (Tự đổi màu và Icon theo 3 Tab)
       floatingActionButton: FloatingActionButton(
-        backgroundColor: _tabController.index == 1 ? Colors.red[900] : Colors.blueGrey[900],
+        backgroundColor: _tabController.index == 0 
+            ? Colors.blue 
+            : (_tabController.index == 1 ? Colors.orange : Colors.red[900]),
         onPressed: _showAddUserDialog,
         child: Icon(
-          _tabController.index == 1 ? Icons.admin_panel_settings : Icons.person_add, 
+          _tabController.index == 0 
+              ? Icons.person_add 
+              : (_tabController.index == 1 ? Icons.storefront : Icons.admin_panel_settings), 
           color: Colors.white
         ),
       ),
     );
   }
 
-  // ... (Hàm _buildUserList GIỮ NGUYÊN như cũ) ...
+  // Hàm _buildUserList (Giữ nguyên logic của bạn)
   Widget _buildUserList({required List<String> filterRoles}) {
-    // (Copy y nguyên hàm _buildUserList từ câu trả lời trước vào đây)
      return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('users').snapshots(),
       builder: (context, snapshot) {
@@ -249,6 +258,7 @@ class _UserManagementTabState extends State<UserManagementTab> with SingleTicker
           final String role = data['role'] ?? "user";
           final String email = (data['email'] ?? "").toString().toLowerCase();
           final String name = (data['displayName'] ?? "").toString().toLowerCase();
+          
           bool roleMatch = filterRoles.contains(role);
           bool searchMatch = email.contains(_searchText) || name.contains(_searchText);
           return roleMatch && searchMatch;
@@ -263,11 +273,10 @@ class _UserManagementTabState extends State<UserManagementTab> with SingleTicker
             final userDoc = users[index];
             final userData = userDoc.data() as Map<String, dynamic>;
             final userId = userDoc.id;
-            // ... lấy data ...
+            
             final String email = userData['email'] ?? "No Email";
             final String name = userData['displayName'] ?? "No Name";
             final String? photoUrl = userData['photoUrl'];
-            final String role = userData['role'] ?? "user";
             final bool isBanned = userData['isBanned'] ?? false;
 
             return Card(
@@ -279,12 +288,12 @@ class _UserManagementTabState extends State<UserManagementTab> with SingleTicker
                 },
                 leading: CircleAvatar(
                  backgroundImage: (photoUrl != null && photoUrl.isNotEmpty) 
-      ? NetworkImage(photoUrl) 
-      : null,
+                    ? NetworkImage(photoUrl) 
+                    : null,
                   backgroundColor: Colors.blueGrey,
                   child: (photoUrl == null || photoUrl.isEmpty) 
-      ? const Icon(Icons.person, color: Colors.white) 
-      : null,
+                    ? const Icon(Icons.person, color: Colors.white) 
+                    : null,
                 ),
                 title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
                 subtitle: Text(email),

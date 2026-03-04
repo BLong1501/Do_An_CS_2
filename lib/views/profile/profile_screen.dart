@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:my_app/views/log/user_log_screen.dart';
+import 'package:my_app/views/profile/feedback_screen.dart';
 import 'package:my_app/views/profile/setting_screen.dart';
 import 'package:my_app/views/profile/update_seller_screen.dart';
 import 'package:my_app/views/profile/user_follow_list_screen.dart';
@@ -389,7 +390,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: Icons.feedback_outlined,
                   title: "Đóng góp ý kiến",
                   onTap: () {
-                    /* ... */
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const FeedbackScreen(),
+                      ),
+                    );
                   },
                 ),
 

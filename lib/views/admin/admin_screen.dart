@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart'; // Đảm bảo đã có intl trong pubspec.yaml
 import 'package:my_app/services/data_seeder.dart';
 import 'package:my_app/services/notification_service.dart';
+import 'package:my_app/views/admin/tabs/admin_feed_back.dart';
 import 'package:my_app/views/admin/tabs/admin_stats_screen.dart';
 import 'package:my_app/views/admin/tabs/user_management_screen.dart';
 import 'package:my_app/views/admin/request_management_screen.dart';
@@ -23,14 +24,14 @@ class _AdminScreenState extends State<AdminScreen> {
     UserManagementTab(),
     RequestManagementScreen(),
     AdminStatsScreen(),
-    const Center(child: Text("Màn hình Cấu Hình (Đang phát triển)")),
+    AdminFeedbackScreen(),
   ];
 
   final List<String> _titles = [
     "Quản lý Người dùng",
     "Quản lý Yêu cầu & Duyệt",
     "Thống kê Báo cáo",
-    "Cấu hình Hệ thống"
+    "Nhận đóng góp"
   ];
 
   @override
@@ -80,7 +81,7 @@ class _AdminScreenState extends State<AdminScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.people), label: "Người dùng"),
           BottomNavigationBarItem(icon: Icon(Icons.assignment_turned_in), label: "Xét duyệt"),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Thống kê"),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Cấu hình"),
+          BottomNavigationBarItem(icon: Icon(Icons.feedback), label: "Nhận đóng góp"),
         ],
       ),
     );

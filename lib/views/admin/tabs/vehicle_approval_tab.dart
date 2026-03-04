@@ -62,15 +62,23 @@ class VehicleApprovalTab extends StatelessWidget {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
+                          color: Colors.grey[300], // Màu nền nếu không có ảnh
                           borderRadius: BorderRadius.circular(8),
-                          image: DecorationImage(
-                            image: NetworkImage(
-                                (vehicle['images'] != null && (vehicle['images'] as List).isNotEmpty)
-                                    ? vehicle['images'][0]
-                                    : 'https://via.placeholder.com/150'),
-                            fit: BoxFit.cover,
-                          ),
                         ),
+                        // Kiểm tra nếu có ảnh thì dùng Image.network, nếu không thì dùng Icon
+                        child: (vehicle['images'] != null && (vehicle['images'] as List).isNotEmpty)
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  vehicle['images'][0],
+                                  fit: BoxFit.cover,
+                                  // Thêm errorBuilder để nếu link ảnh hỏng, app không văng lỗi
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(Icons.broken_image, color: Colors.grey);
+                                  },
+                                ),
+                              )
+                            : const Icon(Icons.directions_car, size: 40, color: Colors.grey), // Ảnh mặc định an toàn
                       ),
                       title: Text(
                         title,

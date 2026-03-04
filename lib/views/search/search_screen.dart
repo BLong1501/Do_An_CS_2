@@ -188,35 +188,34 @@ class _SearchScreenState extends State<SearchScreen> {
                     child: Row(
                       children: [
                         // Ảnh xe
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            vehicle.images.isNotEmpty
-                                ? vehicle.images.first
-                                : 'https://via.placeholder.com/150',
-                            width: 120,
-                            height: 120,
-                            fit: BoxFit.cover,
-                            // Thêm loading builder để tránh lỗi khi ảnh đang tải
-                            loadingBuilder: (ctx, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                width: 120,
-                                height: 120,
-                                color: Colors.grey[200],
-                                child: const Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                                  width: 120,
-                                  height: 120,
-                                  color: Colors.grey[200],
-                                  child: const Icon(Icons.error),
-                                ),
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200], // Màu nền mặc định
+                            borderRadius: BorderRadius.circular(8),
                           ),
+                          child: vehicle.images.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    vehicle.images.first,
+                                    width: 120,
+                                    height: 120,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (ctx, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return const Center(
+                                        child: CircularProgressIndicator(),
+                                      );
+                                    },
+                                    // Bắt lỗi link hỏng
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        const Icon(Icons.broken_image, color: Colors.grey, size: 40),
+                                  ),
+                                )
+                              // Hiện icon xe nếu không có ảnh
+                              : const Icon(Icons.directions_car, color: Colors.grey, size: 40),
                         ),
                         const SizedBox(width: 12),
                         // Thông tin

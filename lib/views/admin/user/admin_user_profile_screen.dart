@@ -280,16 +280,27 @@ class _AdminUserProfileScreenState extends State<AdminUserProfileScreen> with Ti
             return Card(
               margin: const EdgeInsets.only(bottom: 10),
               child: ListTile(
+                // 👇 ĐÃ SỬA LẠI PHẦN LEADING NÀY: Dùng ClipRRect và errorBuilder thay vì DecorationImage
                 leading: Container(
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
+                    color: Colors.grey[300], // Màu nền nếu không có ảnh
                     borderRadius: BorderRadius.circular(8),
-                    image: DecorationImage(
-                      image: NetworkImage(vehicle.images.isNotEmpty ? vehicle.images.first : 'https://via.placeholder.com/150'),
-                      fit: BoxFit.cover,
-                    ),
                   ),
+                  child: vehicle.images.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            vehicle.images.first,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              // Nếu link ảnh bị lỗi (như via.placeholder.com die), nó sẽ hiện icon này
+                              return const Icon(Icons.broken_image, color: Colors.grey);
+                            },
+                          ),
+                        )
+                      : const Icon(Icons.directions_car, color: Colors.grey), // Hiện icon xe nếu list ảnh rỗng
                 ),
                 title: Text(vehicle.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: Text(

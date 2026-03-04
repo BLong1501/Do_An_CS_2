@@ -150,8 +150,21 @@ class AdminReportDetailScreen extends StatelessWidget {
                       children: [
                         ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading: CircleAvatar(
-                            backgroundImage: NetworkImage(userData['photoUrl'] ?? 'https://via.placeholder.com/150'),
+                          leading: ClipOval(
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              color: Colors.blueGrey,
+                              child: (userData['photoUrl'] != null && userData['photoUrl'].toString().isNotEmpty)
+                                  ? Image.network(
+                                      userData['photoUrl'],
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return const Icon(Icons.person, color: Colors.white);
+                                      },
+                                    )
+                                  : const Icon(Icons.person, color: Colors.white),
+                            ),
                           ),
                           title: Text(userData['displayName'] ?? "No Name", style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text(userData['email'] ?? "No Email"),

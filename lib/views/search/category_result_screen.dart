@@ -382,23 +382,28 @@ class _CategoryResultScreenState extends State<CategoryResultScreen> {
                   height: 120,
                   child: Row(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          vehicle.images.isNotEmpty
-                              ? vehicle.images.first
-                              : 'https://via.placeholder.com/150',
-                          width: 120,
-                          height: 120,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(
-                                width: 120,
-                                height: 120,
-                                color: Colors.grey[200],
-                                child: const Icon(Icons.error),
-                              ),
+                      Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300], // Màu xám nhạt nếu không có ảnh
+                          borderRadius: BorderRadius.circular(8),
                         ),
+                        child: vehicle.images.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  vehicle.images.first,
+                                  width: 120,
+                                  height: 120,
+                                  fit: BoxFit.cover,
+                                  // Bắt lỗi nếu link ảnh thực tế bị hỏng/lỗi mạng
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.broken_image, color: Colors.grey, size: 40),
+                                ),
+                              )
+                            // Hiện icon xe nếu list ảnh trống (không dùng link ngoài nữa)
+                            : const Icon(Icons.directions_car, color: Colors.grey, size: 40),
                       ),
                       const SizedBox(width: 12),
                       Expanded(

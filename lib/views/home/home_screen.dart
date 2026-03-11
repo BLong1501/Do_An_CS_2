@@ -152,10 +152,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
             elevation: 5,
             shadowColor: Colors.grey.withOpacity(0.5),
-            leading: IconButton(
-              icon: const Icon(Icons.menu, color: Colors.black),
-              onPressed: () {},
-            ),
+            // leading: IconButton(
+            //   icon: const Icon(Icons.menu, color: Colors.black),
+            //   onPressed: () {},
+            // ),
             title: Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(

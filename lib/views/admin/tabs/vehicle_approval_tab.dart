@@ -116,7 +116,11 @@ class VehicleApprovalTab extends StatelessWidget {
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                               icon: const Icon(Icons.check, color: Colors.white),
                               label: const Text("Duyệt bài", style: TextStyle(color: Colors.white)),
-                              onPressed: () => _handleApprove(context, vehicleId, ownerId, title),
+                              onPressed: () {
+  // Kiểm tra xem xe này có tên cửa hàng không
+  bool isStorePost = vehicle['storeName'] != null && vehicle['storeName'].toString().trim().isNotEmpty;
+  _handleApprove(context, vehicleId, ownerId, title, isStorePost);
+},
                             ),
                           ),
                         ],
@@ -133,8 +137,8 @@ class VehicleApprovalTab extends StatelessWidget {
   }
 
   
-  // --- HÀM DUYỆT BÀI VÀ GỬI THÔNG BÁO (PHIÊN BẢN HOÀN CHỈNH) ---
-  Future<void> _handleApprove(BuildContext context, String vehicleId, String ownerId, String vehicleTitle) async {
+// --- HÀM DUYỆT BÀI VÀ GỬI THÔNG BÁO (ĐÃ SỬA LOGIC TÁCH BIỆT FOLLOWER) ---
+  Future<void> _handleApprove(BuildContext context, String vehicleId, String ownerId, String vehicleTitle, bool isStorePost) async {
     try {
       // 1. Cập nhật trạng thái xe thành 'approved'
       await FirebaseFirestore.instance.collection('vehicles').doc(vehicleId).update({
@@ -151,34 +155,31 @@ class VehicleApprovalTab extends StatelessWidget {
         relatedId: vehicleId,
       );
 
-      // --- 3. GỬI THÔNG BÁO CHO FOLLOWERS (QUÉT CẢ 2 BẢNG) ---
+      // --- 3. GỬI THÔNG BÁO CHO FOLLOWERS (ĐÃ TÁCH BIỆT) ---
       
-      // A. Lấy thông tin chủ xe để lấy tên hiển thị
+      // A. Lấy thông tin chủ xe
       String ownerName = "Người bán";
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(ownerId).get();
       
       if (userDoc.exists) {
         final data = userDoc.data() as Map<String, dynamic>;
-        // Ưu tiên lấy tên Shop, nếu không có thì lấy tên hiển thị
-        ownerName = (data['storeName'] != null && data['storeName'].toString().isNotEmpty)
-            ? data['storeName']
+        // Nếu là bài của Shop -> Lấy tên Shop. Nếu bài cá nhân -> Lấy tên Cá nhân
+        ownerName = isStorePost 
+            ? (data['storeName'] ?? "Cửa hàng")
             : (data['displayName'] ?? "Người dùng");
       }
 
-      // B. Lấy danh sách Follower từ CẢ 2 NGUỒN (followers & store_followers)
-      // Điều này giải quyết trường hợp Seller nhưng chưa tạo Store
-      final List<QuerySnapshot> snapshots = await Future.wait([
-        FirebaseFirestore.instance.collection('users').doc(ownerId).collection('followers').get(),
-        FirebaseFirestore.instance.collection('users').doc(ownerId).collection('store_followers').get(),
-      ]);
+      // B. CHỈ QUÉT 1 BẢNG DUY NHẤT TÙY VÀO LOẠI BÀI ĐĂNG
+      String collectionToQuery = isStorePost ? 'store_followers' : 'followers';
+      
+      final QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(ownerId)
+          .collection(collectionToQuery)
+          .get();
 
-      // C. Gộp danh sách ID (Dùng Set để loại bỏ trùng lặp)
-      Set<String> followerIds = {};
-      for (var snap in snapshots) {
-        for (var doc in snap.docs) {
-          followerIds.add(doc.id);
-        }
-      }
+      // C. Lấy danh sách ID
+      List<String> followerIds = snapshot.docs.map((doc) => doc.id).toList();
 
       // D. Gửi thông báo nếu có người theo dõi
       if (followerIds.isNotEmpty) {

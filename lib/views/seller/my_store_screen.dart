@@ -1,21 +1,19 @@
-import 'package:cloud_firestore/cloud_firestore.dart'  ;
-// import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // 👇 Import Provider
-import '../../providers/auth_provider.dart'; // 👇 Import AuthProvider
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import 'package:my_app/models/vehicle_model.dart';
 import 'package:my_app/views/seller/edit_profile_screen.dart';
 import 'package:my_app/views/vehicle/vehicle_detail_screen.dart';
 import 'package:my_app/views/widgets/vehicle_card.dart';
 import 'package:my_app/views/vehicle/add_vehicle_screen.dart'; 
-import 'package:my_app/views/seller/store_followers_screen.dart'; // 👇 Import màn hình mới tạo
+import 'package:my_app/views/seller/store_followers_screen.dart';
 
 class MyStoreScreen extends StatelessWidget {
   const MyStoreScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // 👇 Lấy thông tin user từ Provider để có số lượng follow mới nhất
     final authProvider = Provider.of<AuthProvider>(context);
     final userModel = authProvider.user;
     final uid = userModel?.uid;
@@ -47,49 +45,58 @@ class MyStoreScreen extends StatelessWidget {
         icon: const Icon(Icons.add_photo_alternate, color: Colors.white),
       ),
 
-      // 👇 Đổi cấu trúc thành Column để chứa phần Follower ở trên và List xe ở dưới
       body: Column(
         children: [
-          
-          // --- 1. PHẦN HIỂN THỊ FOLLOWER ---
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            color: Colors.purple.withOpacity(0.05), // Màu nền nhẹ
-            child: GestureDetector( // Bắt sự kiện ấn vào
-              onTap: () {
-                // Mở màn hình danh sách follower
-                Navigator.push(
-                  context, 
-                  MaterialPageRoute(builder: (_) => StoreFollowersScreen(storeId: uid))
-                );
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Column(
+          // --- 1. PHẦN HIỂN THỊ FOLLOWER (ĐÃ SỬA REAL-TIME) ---
+          StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+            builder: (context, snapshot) {
+              // Lấy số lượng follow, nếu chưa load xong thì lấy tạm từ Provider
+              int currentFollowers = userModel?.storeFollowers ?? 0;
+              if (snapshot.hasData && snapshot.data!.exists) {
+                final data = snapshot.data!.data() as Map<String, dynamic>;
+                currentFollowers = data['storeFollowers'] ?? 0;
+              }
+
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                color: Colors.purple.withOpacity(0.05),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context, 
+                      MaterialPageRoute(builder: (_) => StoreFollowersScreen(storeId: uid))
+                    );
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        "${userModel?.storeFollowers ?? 0}", // 👇 Lấy số từ Model
-                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.purple),
+                      Column(
+                        children: [
+                          Text(
+                            "$currentFollowers", // Số liệu cập nhật ngay lập tức
+                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.purple),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            "Người theo dõi cửa hàng",
+                            style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        "Người theo dõi cửa hàng",
-                        style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
-                      ),
+                      const SizedBox(width: 10),
+                      const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey)
                     ],
                   ),
-                  const SizedBox(width: 10),
-                  const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey)
-                ],
-              ),
-            ),
+                ),
+              );
+            }
           ),
           
           const Divider(height: 1),
 
-          // --- 2. DANH SÁCH XE (Bọc trong Expanded) ---
+          // --- 2. DANH SÁCH XE ---
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -105,11 +112,11 @@ class MyStoreScreen extends StatelessWidget {
                   return const Center(child: Text("Bạn chưa đăng tin nào"));
                 }
 
-                // Lọc thủ công xe của Shop
+                // 👇 Lọc thủ công xe của Shop chuẩn xác 100% giống Profile
                 final allDocs = snapshot.data!.docs;
                 final shopDocs = allDocs.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
-                  return data['storeName'] != null;
+                  return data['storeName'] != null && data['storeName'].toString().trim().isNotEmpty;
                 }).toList();
 
                 if (shopDocs.isEmpty) {
@@ -128,7 +135,8 @@ class MyStoreScreen extends StatelessWidget {
                 }
                 
                 return GridView.builder(
-                  padding: const EdgeInsets.all(10),
+                  // 👇 THÊM PADDING BOTTOM 80 ĐỂ KHÔNG BỊ NÚT NỔI CHE KHUẤT
+                  padding: const EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 80),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                      crossAxisCount: 2, 
                      childAspectRatio: 0.65, 

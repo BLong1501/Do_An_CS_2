@@ -27,6 +27,7 @@ class UserModel {
   final String? description;
   final String? storeAva;
   final int storeFollowers; 
+  final int storeFollowing;
 
   UserModel({
     required this.uid,
@@ -49,6 +50,7 @@ class UserModel {
     this.description,
     this.storeAva,
     this.storeFollowers = 0, 
+    this.storeFollowing = 0,
   });
 
   // Lưu lên Firestore
@@ -74,6 +76,7 @@ class UserModel {
     'description': description,
     'storeAva': storeAva,
     'storeFollowers': storeFollowers,
+    'storeFollowing': storeFollowing, //
   };
 
   // 👇👇👇 HÀM XỬ LÝ NGÀY THÁNG AN TOÀN (QUAN TRỌNG) 👇👇👇
@@ -115,6 +118,7 @@ class UserModel {
       description: data['description'],
       storeAva: data['storeAva'],
       storeFollowers: data['storeFollowers'] ?? 0,
+      storeFollowing: data['storeFollowing'] ?? 0,
     );
   }
 
@@ -139,6 +143,7 @@ class UserModel {
     String? description,
     String? storeAva,
     int? storeFollowers,
+    int? storeFollowing, //
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -161,6 +166,7 @@ class UserModel {
       description: description ?? this.description,
       storeAva: storeAva ?? this.storeAva,
       storeFollowers: storeFollowers ?? this.storeFollowers,
+      storeFollowing: storeFollowing ?? this.storeFollowing,
     );
   }
 }

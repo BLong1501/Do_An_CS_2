@@ -9,6 +9,7 @@ import 'package:my_app/views/profile/feedback_screen.dart';
 import 'package:my_app/views/profile/setting_screen.dart';
 import 'package:my_app/views/profile/update_seller_screen.dart';
 import 'package:my_app/views/profile/user_follow_list_screen.dart';
+import 'package:my_app/views/profile/support_screen.dart';
 import 'package:my_app/views/seller/seller_info_screen.dart';
 import 'package:my_app/views/seller/seller_state_screen.dart';
 import 'package:provider/provider.dart';
@@ -403,7 +404,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: Icons.help_outline,
                   title: "Trợ giúp & Hỗ trợ",
                   onTap: () {
-                    /* ... */
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SupportScreen(),
+                      ),
+                    );
                   },
                 ),
 

@@ -64,7 +64,7 @@ class AdminReportDetailScreen extends StatelessWidget {
       // 2. Cập nhật trạng thái đơn tố cáo
       await _processReport(context, 'resolved');
 
-      // 🔥 3. GỬI THÔNG BÁO CHO USER (Đây là phần bạn thiếu)
+      //  3. GỬI THÔNG BÁO CHO USER 
       await NotificationService().sendNotification(
         receiverId: userId,
         title: "Tài khoản bị hạn chế ⚠️",

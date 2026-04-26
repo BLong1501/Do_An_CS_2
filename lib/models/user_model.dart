@@ -79,11 +79,11 @@ class UserModel {
     'storeFollowing': storeFollowing, //
   };
 
-  // 👇👇👇 HÀM XỬ LÝ NGÀY THÁNG AN TOÀN (QUAN TRỌNG) 👇👇👇
+ 
   static DateTime _parseDate(dynamic val) {
     if (val == null) return DateTime.now(); // Nếu null thì lấy giờ hiện tại
-    if (val is Timestamp) return val.toDate(); // ✅ Xử lý nếu là Timestamp (từ Admin tạo)
-    if (val is String) return DateTime.tryParse(val) ?? DateTime.now(); // ✅ Xử lý nếu là String
+    if (val is Timestamp) return val.toDate(); // 
+    if (val is String) return DateTime.tryParse(val) ?? DateTime.now(); 
     return DateTime.now(); // Fallback
   }
 
@@ -105,10 +105,10 @@ class UserModel {
       address: data['address'],
       favoritePostIds: List<String>.from(data['favoritePostIds'] ?? []),
       
-      // 👇 SỬA LẠI ĐOẠN NÀY ĐỂ KHÔNG BỊ CRASH
+    
       createdAt: _parseDate(data['createdAt']),
       lastLoginAt: data['lastLoginAt'] != null ? _parseDate(data['lastLoginAt']) : null,
-      // 👆
+      
       
       followers: data['followers'] ?? 0,
       following: data['following'] ?? 0,

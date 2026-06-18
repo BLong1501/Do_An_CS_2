@@ -95,8 +95,8 @@ class UserModel {
   // 👇 HÀM XỬ LÝ NGÀY THÁNG AN TOÀN (QUAN TRỌNG)
   static DateTime _parseDate(dynamic val) {
     if (val == null) return DateTime.now(); // Nếu null thì lấy giờ hiện tại
-    if (val is Timestamp) return val.toDate(); // ✅ Xử lý nếu là Timestamp (từ Admin tạo)
-    if (val is String) return DateTime.tryParse(val) ?? DateTime.now(); // ✅ Xử lý nếu là String
+    if (val is Timestamp) return val.toDate(); // 
+    if (val is String) return DateTime.tryParse(val) ?? DateTime.now(); 
     return DateTime.now(); // Fallback
   }
 

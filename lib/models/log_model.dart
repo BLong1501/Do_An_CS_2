@@ -2,8 +2,7 @@ class LogModel {
   final String id;
   final String action; // "Đăng nhập" hoặc "Đăng xuất"
   final DateTime timestamp;
-  final String deviceName; // Tên thiết bị (VD: iPhone 14 Pro)
-
+  final String deviceName; // Tên thiết bị 
   LogModel({
     required this.id,
     required this.action,

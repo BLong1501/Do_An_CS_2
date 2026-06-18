@@ -12,6 +12,11 @@ class UserModel {
   final UserRole role;
   final bool isActive;
   final bool isPendingUpgrade;
+  
+  // 👇 THÊM 2 BIẾN ÁN PHẠT Ở ĐÂY
+  final bool isBanned; 
+  final bool canPost;
+
   final String? address;
   final List<String> favoritePostIds;
   final DateTime createdAt;
@@ -39,6 +44,11 @@ class UserModel {
     this.role = UserRole.user,
     this.isActive = true,
     this.isPendingUpgrade = false,
+    
+    // 👇 Khởi tạo giá trị mặc định cho user mới (Không bị ban, Được phép đăng bài)
+    this.isBanned = false,
+    this.canPost = true,
+
     this.address,
     this.favoritePostIds = const [],
     required this.createdAt,
@@ -63,10 +73,13 @@ class UserModel {
     'role': role.name,
     'isActive': isActive,
     'isPendingUpgrade': isPendingUpgrade,
+    
+    // 👇 Lưu lên Firebase
+    'isBanned': isBanned,
+    'canPost': canPost,
+
     'address': address,
     'favoritePostIds': favoritePostIds,
-    // Lưu ý: Khi update từ App thì lưu String, nhưng tạo từ Admin thì là Timestamp
-    // Model này sẽ xử lý được cả hai khi đọc về.
     'createdAt': createdAt.toIso8601String(),
     'lastLoginAt': lastLoginAt?.toIso8601String(),
     'followers': followers,
@@ -76,10 +89,10 @@ class UserModel {
     'description': description,
     'storeAva': storeAva,
     'storeFollowers': storeFollowers,
-    'storeFollowing': storeFollowing, //
+    'storeFollowing': storeFollowing,
   };
 
-  // 👇👇👇 HÀM XỬ LÝ NGÀY THÁNG AN TOÀN (QUAN TRỌNG) 👇👇👇
+  // 👇 HÀM XỬ LÝ NGÀY THÁNG AN TOÀN (QUAN TRỌNG)
   static DateTime _parseDate(dynamic val) {
     if (val == null) return DateTime.now(); // Nếu null thì lấy giờ hiện tại
     if (val is Timestamp) return val.toDate(); // ✅ Xử lý nếu là Timestamp (từ Admin tạo)
@@ -102,17 +115,18 @@ class UserModel {
       ),
       isActive: data['isActive'] ?? true,
       isPendingUpgrade: data['isPendingUpgrade'] ?? false,
+      
+      // 👇 Đọc từ Firebase về
+      
+      isBanned: data['isBanned'] == true, // Nếu null hoặc khác true -> false
+      canPost: data['canPost'] != false,
+
       address: data['address'],
       favoritePostIds: List<String>.from(data['favoritePostIds'] ?? []),
-      
-      // 👇 SỬA LẠI ĐOẠN NÀY ĐỂ KHÔNG BỊ CRASH
       createdAt: _parseDate(data['createdAt']),
       lastLoginAt: data['lastLoginAt'] != null ? _parseDate(data['lastLoginAt']) : null,
-      // 👆
-      
       followers: data['followers'] ?? 0,
       following: data['following'] ?? 0,
-      
       storeName: data['storeName'],
       taxCode: data['taxCode'],
       description: data['description'],
@@ -132,6 +146,11 @@ class UserModel {
     UserRole? role,
     bool? isActive,
     bool? isPendingUpgrade,
+    
+    // 👇 Thêm vào tham số copyWith
+    bool? isBanned,
+    bool? canPost,
+
     String? address,
     List<String>? favoritePostIds,
     DateTime? createdAt,
@@ -143,7 +162,7 @@ class UserModel {
     String? description,
     String? storeAva,
     int? storeFollowers,
-    int? storeFollowing, //
+    int? storeFollowing,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -155,6 +174,11 @@ class UserModel {
       role: role ?? this.role,
       isActive: isActive ?? this.isActive,
       isPendingUpgrade: isPendingUpgrade ?? this.isPendingUpgrade,
+      
+      // 👇 Gán giá trị mới nếu có
+      isBanned: isBanned ?? this.isBanned,
+      canPost: canPost ?? this.canPost,
+
       address: address ?? this.address,
       favoritePostIds: favoritePostIds ?? this.favoritePostIds,
       createdAt: createdAt ?? this.createdAt,

@@ -65,7 +65,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  // 2. CẬP NHẬT LOGIC LỌC (QUAN TRỌNG)
+  // 2. CẬP NHẬT LOGIC LỌC 
   void _runFilter(String keyword) {
     setState(() {
       _isSearching = true;

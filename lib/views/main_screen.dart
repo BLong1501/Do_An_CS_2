@@ -50,29 +50,101 @@ class _MainScreenState extends State<MainScreen> {
     return Consumer<AuthProvider>(
       builder: (context, auth, child) {
         final user = auth.user;
+        
+        // 👇 1. NẾU USER BỊ BAN -> HIỆN TRỰC TIẾP MÀN HÌNH ĐEN Ở ĐÂY 👇
+        if (user != null && user.isBanned) {
+          return Scaffold(
+            backgroundColor: const Color(0xFF1E1E1E), // Nền đen
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.block, color: Colors.redAccent, size: 80),
+                    const SizedBox(height: 30),
+                    const Text(
+                      "TÀI KHOẢN BỊ KHÓA",
+                      style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                    ),
+                    const SizedBox(height: 15),
+                    const Text(
+                      "Tài khoản của bạn đã bị khóa do vi phạm nghiêm trọng Tiêu chuẩn cộng đồng.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white70, fontSize: 16, height: 1.5),
+                    ),
+                    const SizedBox(height: 40),
+                    Row(
+                      children: [
+                        // Nút Báo cáo
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blueAccent,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            icon: const Icon(Icons.support_agent, color: Colors.white),
+                            label: const Text("Báo cáo", style: TextStyle(color: Colors.white)),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text("Kháng cáo & Hỗ trợ"),
+                                  content: const Text("Người phát triển: Trần Bảo Long\nSĐT: 0344907168\nEmail: tranbaolong5b@gmail.com\n\nVui lòng liên hệ để được xem xét."),
+                                  actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Đóng"))],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        // Nút Đăng xuất
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.white54),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            icon: const Icon(Icons.logout, color: Colors.white),
+                            label: const Text("Đăng xuất", style: TextStyle(color: Colors.white)),
+                            onPressed: () async {
+                              await Provider.of<AuthProvider>(context, listen: false).logout();
+                              // Nhớ import LoginScreen ở đầu file nhé
+                              // Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+        // 👆 KẾT THÚC PHẦN MÀN HÌNH KHÓA 👆
+
+
+        // ==========================================
+        // 👇 LOGIC BÌNH THƯỜNG DÀNH CHO USER KHÔNG BỊ KHÓA 👇
         final bool isSeller = user != null && (user.role == UserRole.seller || user.role == UserRole.admin);
+        
         if (!isSeller && _currentIndex == 2) {
-           // Dùng addPostFrameCallback để tránh lỗi setState trong khi build
            WidgetsBinding.instance.addPostFrameCallback((_) {
              setState(() {
                _currentIndex = 0;
              });
            });
         }
-        // Logic kiểm tra để hiện nút: Phải là Seller VÀ đang ở tab Trang chủ (index 0)
+        
         final bool showFab = isSeller && _currentIndex == 0;
 
         return Scaffold(
-          // Hiển thị nội dung trang theo index
           body: IndexedStack(
             index: _currentIndex,
             children: _pages,
           ),
 
-          // NÚT ĐĂNG TIN (FAB)
-          // Import Firestore
-
-          // NÚT ĐĂNG TIN (FAB)
           floatingActionButton: showFab
               ? SizedBox(
                   height: 65, width: 65,
@@ -80,58 +152,18 @@ class _MainScreenState extends State<MainScreen> {
                     backgroundColor: Colors.purple,
                     elevation: 5,
                     shape: const CircleBorder(),
-                    // 👇 SỬA ĐOẠN onPressed NÀY
-                    onPressed: () async {
-                      // 1. Hiện loading để user biết đang xử lý
-                      showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (ctx) => const Center(child: CircularProgressIndicator()),
-                      );
-
-                      try {
-                        // 2. Lấy dữ liệu mới nhất từ Firestore (Không lấy từ cache hay provider để đảm bảo chính xác)
-                        final userDoc = await FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(user!.uid) // user lấy từ auth provider ở trên
-                            .get();
-
-                        // Tắt loading
-                        if (context.mounted) Navigator.pop(context);
-
-                        if (userDoc.exists) {
-                          final userData = userDoc.data() as Map<String, dynamic>;
-                          // Mặc định là true nếu trường này chưa có
-                          final bool canPost = userData['canPost'] ?? true; 
-                          final bool isBanned = userData['isBanned'] ?? false;
-
-                          // 3. KIỂM TRA QUYỀN
-                          if (isBanned) {
-                             _showRestrictionDialog(context, "Tài khoản của bạn đã bị KHÓA vĩnh viễn.");
-                             return;
-                          }
-
-                          if (!canPost) {
-                             _showRestrictionDialog(context, "Chức năng đăng bài đang bị tạm khóa do vi phạm tiêu chuẩn cộng đồng.");
-                             return;
-                          }
-
-                          // 4. NẾU ỔN THÌ MỚI CHO VÀO TRANG ĐĂNG
-                          if (context.mounted) {
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const AddVehicleScreen()));
-                          }
-                        }
-                      } catch (e) {
-                        if (context.mounted) Navigator.pop(context); // Tắt loading nếu lỗi
-                        print("Lỗi kiểm tra quyền: $e");
+                    onPressed: () {
+                      if (user?.canPost == false) {
+                         _showRestrictionDialog(context, "Chức năng đăng bài đang bị tạm khóa do vi phạm tiêu chuẩn cộng đồng.");
+                         return; 
                       }
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AddVehicleScreen()));
                     },
                     child: const Icon(Icons.add, color: Colors.white, size: 30),
                   ),
                 )
               : null,
 
-          // THANH BOTTOM BAR
           bottomNavigationBar: BottomAppBar(
             elevation: 10,
             color: Colors.white,
@@ -146,7 +178,7 @@ class _MainScreenState extends State<MainScreen> {
                   if (isSeller)
                     _buildBottomItem(Icons.assignment_outlined, "Tin của tôi", 2),
                   _buildBottomItem(Icons.favorite_border, "Yêu thích", 3),
-                  _buildBottomItem(Icons.person_outline, "Tài khoản", 4), // Bỏ isLogout: true
+                  _buildBottomItem(Icons.person_outline, "Tài khoản", 4),
                 ],
               ),
             ),

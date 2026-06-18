@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// 👇 1. IMPORT THƯ VIỆN FACEBOOK AUTH
+//  1. IMPORT THƯ VIỆN FACEBOOK AUTH
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart'; 
 
 import '../models/user_model.dart';
@@ -138,7 +138,7 @@ Future<void> register(String email, String password, String name, String phone, 
     _isLoading = true;
     notifyListeners();
     try {
-      // 👇 GỌI REPO
+      //  GỌI REPO
       await _authRepo.register(
         email: email, 
         password: password, 
@@ -197,7 +197,7 @@ Future<void> register(String email, String password, String name, String phone, 
     }
   }
 
-  // 👇👇👇 2. THÊM HÀM ĐĂNG NHẬP FACEBOOK 👇👇👇
+  // 2. THÊM HÀM ĐĂNG NHẬP FACEBOOK 
   Future<void> loginWithFacebook() async {
     _isLoading = true;
     notifyListeners();
@@ -260,8 +260,7 @@ Future<void> register(String email, String password, String name, String phone, 
       notifyListeners();
     }
   }
-  // 👆👆👆 HẾT PHẦN THÊM MỚI 👆👆👆
-
+  // HẾT PHẦN THÊM MỚI 
 
   Future<void> sendPasswordReset(String email) async {
     try {
@@ -271,7 +270,7 @@ Future<void> register(String email, String password, String name, String phone, 
     }
   }
 
-  // ... (Giữ nguyên các hàm requestUpgradeToSeller, submitSellerRequest) ...
+  // (Giữ nguyên các hàm requestUpgradeToSeller, submitSellerRequest) 
   Future<void> requestUpgradeToSeller() async {
     if (_user == null) return;
     _isLoading = true;

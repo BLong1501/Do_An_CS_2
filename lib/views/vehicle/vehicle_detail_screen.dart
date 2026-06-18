@@ -371,9 +371,7 @@ class VehicleDetailScreen extends StatelessWidget {
         ),
       ),
 
-      // BOTTOM NAVIGATION BAR: NÚT LIÊN HỆ
-      // BOTTOM NAVIGATION BAR: NÚT LIÊN HỆ
-      // BOTTOM NAVIGATION BAR: NÚT LIÊN HỆ
+      
      // BOTTOM NAVIGATION BAR: NÚT LIÊN HỆ & GỌI ĐIỆN
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),

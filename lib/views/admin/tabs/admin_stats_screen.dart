@@ -380,7 +380,7 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
                           child: _buildStatCard(
                             title: "Đơn tố cáo", count: _reports, icon: Icons.report_problem, color: Colors.red,
                             onTap: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => const ReportTab()));
+                              // Navigator.push(context, MaterialPageRoute(builder: (context) => const ReportTab()));
                             },
                           ),
                         ),

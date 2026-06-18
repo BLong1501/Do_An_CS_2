@@ -15,10 +15,22 @@ class ChatListScreen extends StatefulWidget {
 }
 
 class _ChatListScreenState extends State<ChatListScreen> {
-  final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
-
+  // 👇 SỬA LỖI: Xóa dòng lấy currentUser!.uid ở đây đi
+  
   @override
   Widget build(BuildContext context) {
+    // 👇 CHUYỂN VÀO ĐÂY VÀ KIỂM TRA AN TOÀN
+    final user = FirebaseAuth.instance.currentUser;
+    
+    // Nếu chưa đăng nhập thì hiện thông báo thay vì văng app
+    if (user == null) {
+      return const Scaffold(
+        body: Center(child: Text("Vui lòng đăng nhập để xem tin nhắn")),
+      );
+    }
+
+    final String currentUserId = user.uid; // Lấy ID an toàn
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Tin nhắn", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -35,7 +47,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ),
         ),
       ),
-      // 👇 STREAM 1: LẮNG NGHE LIST CHẶN CỦA CHÍNH MÌNH (QUAN TRỌNG ĐỂ NÚT ĐỔI MÀU)
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('users').doc(currentUserId).snapshots(),
         builder: (context, userSnapshot) {
@@ -47,12 +58,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
           List<String> blockedUsers = [];
           if (userSnapshot.hasData && userSnapshot.data!.exists) {
             final data = userSnapshot.data!.data() as Map<String, dynamic>?;
+            // Xử lý cẩn thận kiểu dữ liệu dynamic list từ Firestore
             if (data != null && data['blockedUsers'] != null) {
-              blockedUsers = List<String>.from(data['blockedUsers']);
+              blockedUsers = List<String>.from(data['blockedUsers'] as List<dynamic>);
             }
           }
 
-          // 👇 STREAM 2: LẤY DANH SÁCH CHAT ROOMS
+          // STREAM 2: LẤY DANH SÁCH CHAT ROOMS
           return StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('chat_rooms')
@@ -104,7 +116,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
                   if (otherUserId.isEmpty) return const SizedBox();
 
-                  // 2. Kiểm tra chặn (Logic của đoạn code 1)
+                  // 2. Kiểm tra chặn
                   final bool isBlocked = blockedUsers.contains(otherUserId);
 
                   return Slidable(
@@ -122,7 +134,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           label: 'Đã đọc',
                         ),
 
-                        // 👇 NÚT CHẶN/MỞ CHẶN (Logic của đoạn code 1)
+                        // NÚT CHẶN/MỞ CHẶN
                         SlidableAction(
                           backgroundColor: isBlocked ? Colors.green : Colors.redAccent, 
                           foregroundColor: Colors.white,
@@ -169,7 +181,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       ],
                     ),
                     
-                    // 👇 PHẦN HIỂN THỊ ĐẸP (Lấy từ đoạn code 2)
+                    // PHẦN HIỂN THỊ ĐẸP
                     child: FutureBuilder<DocumentSnapshot>(
                       future: FirebaseFirestore.instance.collection('users').doc(otherUserId).get(),
                       builder: (context, userSnapshot) {
@@ -208,7 +220,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 2),
-                              // Logic hiển thị tin nhắn hoặc cảnh báo đã chặn
                               Text(
                                 isBlocked ? "Bạn đã chặn người dùng này" : lastMessage, 
                                 maxLines: 1,

@@ -20,7 +20,7 @@ class VehicleProvider extends ChangeNotifier {
 
   // 2. CÁC BIẾN DỮ LIỆU
   List<String> _categories = [];
-  
+
   // SỬA: Thay vì List<String>, ta dùng List<BrandData> để lưu chi tiết hơn
   List<BrandData> _allBrands = []; 
   

@@ -32,17 +32,28 @@ class _VehicleCardState extends State<VehicleCard> {
   void _checkFavoriteStatus() async {
     if (user == null) return;
 
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user!.uid)
-        .collection('favorites')
-        .doc(widget.vehicle.id) // Check theo ID xe
-        .get();
+    // 👇 THÊM ĐOẠN NÀY ĐỂ CHẶN LỖI CRASH KHI VÀO THỐNG KÊ 👇
+    if (widget.vehicle.id.isEmpty) {
+      print("Bỏ qua check tim vì ID xe đang bị rỗng!");
+      return; 
+    }
+    // 👆 ================================================== 👆
 
-    if (mounted) {
-      setState(() {
-        isFavorite = doc.exists;
-      });
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .collection('favorites')
+          .doc(widget.vehicle.id) // Lúc này ID chắc chắn không rỗng
+          .get();
+
+      if (mounted) {
+        setState(() {
+          isFavorite = doc.exists;
+        });
+      }
+    } catch (e) {
+      print("Lỗi check tim: $e");
     }
   }
   // 2. Hàm Thả tim / Bỏ tim

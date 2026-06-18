@@ -36,20 +36,84 @@ class AdminReportDetailScreen extends StatelessWidget {
   }
 
   // 2. Hàm Cấm tài khoản (Ban User)
+  // 2. Hàm Cấm tài khoản (Ban User) - ĐÃ ĐƯỢC NÂNG CẤP
   Future<void> _banUser(BuildContext context, String userId) async {
-    // Cập nhật user thành bị ban
-    await FirebaseFirestore.instance.collection('users').doc(userId).update({
-      'isBanned': true,
-      'bannedAt': FieldValue.serverTimestamp(),
-    });
+    // 1. Hiển thị hộp thoại XÁC NHẬN trước khi khóa (Chống bấm nhầm)
+    bool confirm = await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("CẢNH BÁO", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        content: const Text(
+          "Bạn có chắc chắn muốn KHÓA VĨNH VIỄN người dùng này không?\n\n"
+          "Hành động này sẽ:\n"
+          "1. Chặn người dùng truy cập ứng dụng.\n"
+          "2. Gỡ toàn bộ các bài đăng xe của họ khỏi hệ thống."
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Hủy", style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[900]),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Khóa ngay", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    ) ?? false;
 
-    // Đánh dấu đơn này đã giải quyết xong
-    await _processReport(context, 'resolved');
-    
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Đã KHÓA TÀI KHOẢN thành công!"))
-      );
+    if (!confirm) return; // Nếu Admin bấm Hủy thì dừng lại
+
+    // Hiện vòng xoay Loading vì phải xử lý nhiều dữ liệu
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Sử dụng Batch để thực hiện nhiều lệnh Update cùng lúc cho an toàn
+      final batch = FirebaseFirestore.instance.batch();
+
+      // 2. Lệnh 1: Khóa tài khoản User
+      final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+      batch.update(userRef, {
+        'isBanned': true,
+        'bannedAt': FieldValue.serverTimestamp(),
+      });
+
+      // 3. Lệnh 2: Quét và Gỡ toàn bộ bài đăng của người này
+      final vehiclesSnapshot = await FirebaseFirestore.instance
+          .collection('vehicles')
+          .where('ownerId', isEqualTo: userId)
+          .get();
+
+      for (var doc in vehiclesSnapshot.docs) {
+        batch.update(doc.reference, {
+          'status': 'rejected', // Chuyển về trạng thái từ chối/bị ẩn
+          'rejectionReason': 'Tài khoản chủ xe đã bị khóa do vi phạm.',
+        });
+      }
+
+      // 4. Thực thi tất cả các lệnh trên đẩy lên Firebase
+      await batch.commit();
+
+      // 5. Đóng loading và đánh dấu đơn tố cáo đã giải quyết
+      if (context.mounted) {
+        Navigator.pop(context); // Tắt loading
+        await _processReport(context, 'resolved'); // Hàm này đã có sẵn việc đóng màn hình chi tiết
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Đã KHÓA TÀI KHOẢN và gỡ tất cả bài đăng!"),
+            backgroundColor: Colors.red,
+          )
+        );
+      }
+    } catch (e) {
+      if (context.mounted) Navigator.pop(context); // Tắt loading nếu lỗi
+      print("Lỗi khóa tài khoản: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi: $e")));
+      }
     }
   }
 

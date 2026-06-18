@@ -29,9 +29,7 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
     required String notifBody,
     String notifType = "system"
   }) async {
-    // ... (Giữ nguyên logic cũ của hàm này)
-    // Để tiết kiệm không gian tôi không paste lại toàn bộ hàm này, bạn giữ nguyên như cũ nhé.
-    // Nếu bạn cần tôi paste lại thì báo tôi.
+    
      bool? confirm = await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -356,7 +354,7 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                     )
                   ],
                 ),
-                // ... (Đoạn code các nút Cấm/Khóa cũ) ...
+                
                     
                     const SizedBox(height: 20),
                     const Divider(thickness: 2, color: Colors.red),
